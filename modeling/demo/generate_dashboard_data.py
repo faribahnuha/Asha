@@ -36,7 +36,6 @@ for _sibling_dir in ("candidate_pool", "scoring", "recommend", "demo"):
     if _sibling_path not in sys.path:
         sys.path.append(_sibling_path)
 
-import candidate_pool as cp  # noqa: E402
 import recommend as R  # noqa: E402
 import try_it_out as demo  # noqa: E402
 
@@ -58,50 +57,10 @@ SAMPLE_CASES: tuple[tuple[str, str, float, float], ...] = (
     ("Leh, Ladakh", "injury_bleeding", 34.1526, 77.5771),  # remote: likely nothing reachable in time
 )
 
-# Plain-language descriptions for the three blood_level tiers.
-# Source: model-design.md (draft), "Criteria" table.
-BLOOD_LEVEL_DESCRIPTIONS: dict[int, str] = {
-    1: "Has blood on site (components and 24x7 status not confirmed)",
-    2: "Has blood plus components (platelets, plasma)",
-    3: "Has blood, components, and is open 24x7",
-}
-
-# Human-readable labels for the services used in SCENARIO_SERVICE_LISTS.
-SERVICE_LABELS: dict[str, str] = {
-    "c_section": "C-section",
-    "obstetrics": "Obstetric care",
-    "icu": "ICU",
-    "emergency_surgery": "Emergency surgery",
-    "trauma_care": "Trauma care",
-    "general_medicine": "General medicine",
-    "ed_24x7": "24/7 emergency department",
-    "surgery": "Surgery",
-}
-
-
-def describe_services(unique_id: str, scenario_key: str, is_confirmed: bool, facility_services: pd.DataFrame) -> dict:
-    """Build a human-readable breakdown of which of this scenario's needed
-    services a facility has and lacks.
-
-    PARAMETERS:
-        unique_id: the facility's id. May not appear in facility_services.
-        scenario_key: must be a key of cp.SCENARIO_SERVICE_LISTS.
-        is_confirmed: whether this facility has any service data at all.
-        facility_services: the full (unique_id, service) table.
-    """
-    assert scenario_key in cp.SCENARIO_SERVICE_LISTS, f"unknown scenario: {scenario_key}"
-    needed_services = cp.SCENARIO_SERVICE_LISTS[scenario_key]
-
-    if not is_confirmed:
-        return {"has": [], "missing": [], "note": "No service data available for this facility"}
-
-    facility_rows = facility_services[facility_services["unique_id"] == unique_id]
-    present_services = set(facility_rows["service"])
-
-    has = [SERVICE_LABELS.get(service, service) for service in needed_services if service in present_services]
-    missing = [SERVICE_LABELS.get(service, service) for service in needed_services if service not in present_services]
-    assert len(has) + len(missing) == len(needed_services), "every needed service must be has or missing, not both/neither"
-    return {"has": has, "missing": missing, "note": ""}
+# BLOOD_LEVEL_DESCRIPTIONS, SERVICE_LABELS, and describe_services() now live
+# in try_it_out.py (imported as `demo` below) so this file and
+# modeling/api/app.py share one implementation instead of two copies
+# drifting apart. Use demo.describe_services(), demo.BLOOD_LEVEL_DESCRIPTIONS.
 
 
 def summarize_one_result(
@@ -124,7 +83,7 @@ def summarize_one_result(
     facility_summaries = []
     for _, row in result.iterrows():
         is_confirmed = bool(row.get("needed_services_confirmed", False))
-        service_breakdown = describe_services(row["unique_id"], scenario_key, is_confirmed, facility_services)
+        service_breakdown = demo.describe_services(row["unique_id"], scenario_key, is_confirmed, facility_services)
         blood_level = int(row["blood_level"]) if pd.notna(row.get("blood_level")) else None
 
         facility_summaries.append(
@@ -138,7 +97,7 @@ def summarize_one_result(
                 "score": round(float(row["score"]), 3),
                 "confirmed": is_confirmed,
                 "blood_level": blood_level,
-                "blood_level_description": BLOOD_LEVEL_DESCRIPTIONS.get(blood_level, "Unknown"),
+                "blood_level_description": demo.BLOOD_LEVEL_DESCRIPTIONS.get(blood_level, "Unknown"),
                 "services_has": service_breakdown["has"],
                 "services_missing": service_breakdown["missing"],
                 "services_note": service_breakdown["note"],
