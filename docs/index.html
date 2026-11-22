@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Find a Facility</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --ground:#F6F8F7;
+    --surface:#FFFFFF;
+    --surface-sunk:#EFF3F1;
+    --text:#10181A;
+    --text-muted:#5B6B68;
+    --border:#D9E2DF;
+    --accent:#0B6E62;
+    --accent-soft:#E2EFEA;
+    --good:#2E7D54;
+    --good-soft:#E3F1E8;
+    --warn:#9C6A20;
+    --warn-soft:#F7EBD6;
+    --bad:#A8402B;
+    --bad-soft:#F6E2DD;
+    --shadow: 0 1px 2px rgba(16,24,26,0.06), 0 6px 16px rgba(16,24,26,0.05);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#0D1416; --surface:#141C1E; --surface-sunk:#101718;
+      --text:#E7EFED; --text-muted:#90A19E; --border:#273330;
+      --accent:#54D8C3; --accent-soft:#17302B;
+      --good:#5FC98C; --good-soft:#15291F;
+      --warn:#E3A95B; --warn-soft:#2E2518;
+      --bad:#E2816B; --bad-soft:#2E1C18;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 20px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0D1416; --surface:#141C1E; --surface-sunk:#101718;
+    --text:#E7EFED; --text-muted:#90A19E; --border:#273330;
+    --accent:#54D8C3; --accent-soft:#17302B;
+    --good:#5FC98C; --good-soft:#15291F;
+    --warn:#E3A95B; --warn-soft:#2E2518;
+    --bad:#E2816B; --bad-soft:#2E1C18;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 20px rgba(0,0,0,0.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0; background:var(--ground); color:var(--text); font-family:"IBM Plex Sans", system-ui, sans-serif;}
+  body{padding:24px 20px 56px;}
+  .wrap{max-width:1040px; margin:0 auto; display:flex; flex-direction:column; gap:18px;}
+  h1,h2,h3{font-family:"Spectral", Georgia, serif; text-wrap:balance; margin:0;}
+  .mono, .num{font-family:"IBM Plex Mono", monospace; font-variant-numeric: tabular-nums;}
+
+  header h1{font-size:26px; font-weight:600;}
+  .subhead{color:var(--text-muted); font-size:14px; max-width:68ch; line-height:1.5; margin-top:4px;}
+
+  .scenario-row{display:flex; flex-wrap:wrap; gap:8px;}
+  .scenario-row button{
+    font-family:inherit; font-size:13.5px; color:var(--text);
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:999px; padding:8px 14px; cursor:pointer;
+  }
+  .scenario-row button[aria-pressed="true"]{background:var(--accent); color:var(--surface); border-color:var(--accent); font-weight:500;}
+  .scenario-row button:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+
+  .main-grid{display:grid; grid-template-columns: 1fr 1fr; gap:20px; align-items:start;}
+  @media (max-width: 760px){ .main-grid{grid-template-columns:1fr;} }
+
+  .panel{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow:var(--shadow);}
+  .panel h3{font-size:13px; font-weight:600; letter-spacing:.02em; text-transform:uppercase; color:var(--text-muted); margin-bottom:10px;}
+
+  #map{width:100%; height:auto; display:block; cursor:crosshair; border-radius:10px;}
+  #map .outline{fill:var(--accent-soft); stroke:var(--accent); stroke-width:1.25;}
+  #map .hint{fill:var(--text-muted);}
+  .map-row{display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap; margin-top:10px;}
+  .map-row .coords{font-size:12.5px; color:var(--text-muted);}
+  .random-btn{
+    font-family:inherit; font-size:12.5px; color:var(--accent); background:none;
+    border:1px solid var(--accent); border-radius:999px; padding:6px 12px; cursor:pointer;
+  }
+  .random-btn:hover{background:var(--accent-soft);}
+
+  .status{font-size:13px; color:var(--text-muted); min-height:1.4em;}
+  .status.error{color:var(--bad);}
+
+  .facility-list{display:flex; flex-direction:column; gap:12px;}
+  .facility-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:14px 16px; box-shadow:var(--shadow);
+    display:grid; grid-template-columns:30px 1fr; gap:12px;
+  }
+  .rank{
+    width:30px; height:30px; border-radius:50%; background:var(--surface-sunk);
+    border:1px solid var(--border); color:var(--text-muted);
+    display:flex; align-items:center; justify-content:center;
+    font-family:"IBM Plex Mono", monospace; font-size:13px; font-weight:500;
+  }
+  .facility-main{display:flex; flex-direction:column; gap:8px; min-width:0;}
+  .facility-top{display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; align-items:baseline;}
+  .facility-name{font-family:"Spectral", serif; font-weight:600; font-size:16px; line-height:1.3;}
+  .facility-place{color:var(--text-muted); font-size:12.5px;}
+  .facility-stats{display:flex; gap:14px; font-size:12.5px; color:var(--text-muted); flex-wrap:wrap;}
+  .facility-stats .num{color:var(--text); font-size:13px;}
+  .chip{display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:500; padding:3px 9px; border-radius:999px; white-space:nowrap;}
+  .chip.confirmed{background:var(--good-soft); color:var(--good);}
+  .chip.unconfirmed{background:var(--warn-soft); color:var(--warn);}
+  .chip::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor;}
+  .blood-line{font-size:12.5px; color:var(--text-muted);}
+  .service-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  @media (max-width:420px){ .service-grid{grid-template-columns:1fr;} }
+  .service-col h4{font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--text-muted); margin:0 0 4px; font-weight:500;}
+  .service-col ul{margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:3px;}
+  .service-col li{font-size:12.5px; display:flex; align-items:center; gap:6px;}
+  .service-col.has li::before{content:"+"; color:var(--good); font-weight:600;}
+  .service-col.missing li::before{content:"\2212"; color:var(--bad); font-weight:600;}
+  .service-empty{font-size:12px; color:var(--text-muted); font-style:italic; margin:0;}
+  .facility-note{font-size:12px; color:var(--warn); background:var(--warn-soft); border-radius:8px; padding:7px 10px; line-height:1.4;}
+  .placeholder{font-size:13px; color:var(--text-muted); text-align:center; padding:30px 10px;}
+
+  footer{color:var(--text-muted); font-size:11.5px; text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Find a Facility</h1>
+    <p class="subhead">Pick a scenario, then click anywhere in India (or randomize) to query the live model. This calls the real API at <code class="mono">asha-recommend-api.onrender.com</code> — if it's been idle, the first request can take up to a minute to wake it up.</p>
+  </header>
+
+  <div class="scenario-row" id="scenarioRow"></div>
+
+  <div class="main-grid">
+    <div class="panel">
+      <h3>Location</h3>
+      <svg id="map" viewBox="0 0 420 460" role="img" aria-label="Simplified, clickable outline of India"></svg>
+      <div class="map-row">
+        <span class="coords" id="coordsLabel">Click the map to set a location</span>
+        <button class="random-btn" id="randomBtn" type="button">Randomize location</button>
+      </div>
+      <p class="status" id="statusLine"></p>
+    </div>
+    <div class="panel">
+      <h3>Top 3 facilities</h3>
+      <div class="facility-list" id="results">
+        <p class="placeholder">Pick a scenario and a location to see results.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>Map outline is simplified for click targeting, not an exact border. Distance is straight-line (not routed), with an assumed, unmeasured detour factor and speed — see this repo's model-design.md.</footer>
+</div>
+
+<script>
+const API_BASE = "https://asha-recommend-api.onrender.com";
+
+const SCENARIOS = [
+  ["pregnancy_bleeding", "Pregnant or just delivered, heavy bleeding"],
+  ["injury_bleeding", "Accident or injury with major bleeding"],
+  ["severe_anemia", "Severe weakness or anemia, no injury"],
+  ["not_sure", "Other blood-related / not sure"],
+];
+
+// Simplified India outline: approximate boundary points, not a precise
+// geographic dataset. Enough to recognize the shape and give the click
+// target meaning; never used for anything but the click-to-lat/lon mapping.
+const INDIA_OUTLINE_LATLON = [
+  [37.0, 74.5], [34.5, 78.0], [31.0, 79.0], [30.3, 81.0], [27.5, 88.0],
+  [26.8, 89.5], [26.0, 92.0], [28.2, 97.3], [27.0, 97.0], [24.0, 94.0],
+  [22.0, 93.0], [21.0, 92.5], [22.5, 89.0], [21.5, 88.2], [20.0, 86.5],
+  [16.5, 82.3], [13.1, 80.3], [10.8, 79.8], [8.1, 77.5], [9.5, 76.3],
+  [12.9, 74.8], [15.5, 73.8], [19.0, 72.8], [21.0, 72.6], [22.5, 69.1],
+  [23.8, 68.2], [24.5, 71.0], [28.9, 70.2], [32.0, 74.5],
+];
+
+const LAT_MIN = 6.0, LAT_MAX = 38.0, LON_MIN = 68.0, LON_MAX = 98.0;
+const MAP_W = 420, MAP_H = 460, MAP_PAD = 14;
+
+let selectedScenario = SCENARIOS[0][0];
+let selectedLat = null, selectedLon = null;
+
+function lonToX(lon){ return MAP_PAD + ((lon - LON_MIN) / (LON_MAX - LON_MIN)) * (MAP_W - 2 * MAP_PAD); }
+function latToY(lat){ return MAP_H - MAP_PAD - ((lat - LAT_MIN) / (LAT_MAX - LAT_MIN)) * (MAP_H - 2 * MAP_PAD); }
+function xToLon(x){ return LON_MIN + ((x - MAP_PAD) / (MAP_W - 2 * MAP_PAD)) * (LON_MAX - LON_MIN); }
+function yToLat(y){ return LAT_MIN + ((MAP_H - MAP_PAD - y) / (MAP_H - 2 * MAP_PAD)) * (LAT_MAX - LAT_MIN); }
+
+function isInsideOutline(lat, lon){
+  // Standard ray-casting point-in-polygon test against INDIA_OUTLINE_LATLON.
+  let inside = false;
+  const pts = INDIA_OUTLINE_LATLON;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++){
+    const [latI, lonI] = pts[i], [latJ, lonJ] = pts[j];
+    const crosses = (lonI > lon) !== (lonJ > lon);
+    if (crosses){
+      const latAtLon = latI + (lon - lonI) / (lonJ - lonI) * (latJ - latI);
+      if (lat < latAtLon) inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function renderScenarioRow(){
+  const row = document.getElementById("scenarioRow");
+  row.innerHTML = SCENARIOS.map(([key, label], i) =>
+    `<button data-key="${key}" aria-pressed="${key === selectedScenario}">${label}</button>`
+  ).join("");
+  row.querySelectorAll("button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      selectedScenario = btn.dataset.key;
+      renderScenarioRow();
+      if (selectedLat !== null) runQuery();
+    });
+  });
+}
+
+function renderMap(){
+  const svg = document.getElementById("map");
+  const pathData = INDIA_OUTLINE_LATLON.map(([lat, lon], i) =>
+    `${i === 0 ? "M" : "L"} ${lonToX(lon).toFixed(1)} ${latToY(lat).toFixed(1)}`
+  ).join(" ") + " Z";
+
+  let markerHtml = "";
+  if (selectedLat !== null){
+    const mx = lonToX(selectedLon), my = latToY(selectedLat);
+    markerHtml = `
+      <circle cx="${mx}" cy="${my}" r="11" fill="var(--bad)" opacity="0.18"/>
+      <path d="M ${mx} ${my - 9} l 6.5 11 h -13 z" fill="var(--bad)" stroke="var(--surface)" stroke-width="1.25"/>
+    `;
+  }
+
+  svg.innerHTML = `
+    <rect x="0" y="0" width="${MAP_W}" height="${MAP_H}" fill="var(--surface-sunk)" rx="10"/>
+    <path class="outline" d="${pathData}"/>
+    ${markerHtml}
+  `;
+}
+
+function updateCoordsLabel(){
+  const label = document.getElementById("coordsLabel");
+  label.textContent = selectedLat === null
+    ? "Click the map to set a location"
+    : `Selected: ${selectedLat.toFixed(3)}, ${selectedLon.toFixed(3)}`;
+}
+
+function setStatus(text, isError){
+  const line = document.getElementById("statusLine");
+  line.textContent = text || "";
+  line.className = "status" + (isError ? " error" : "");
+}
+
+async function setLocationAndQuery(lat, lon){
+  selectedLat = lat;
+  selectedLon = lon;
+  renderMap();
+  updateCoordsLabel();
+  await runQuery();
+}
+
+function handleMapClick(event){
+  const svg = document.getElementById("map");
+  const rect = svg.getBoundingClientRect();
+  const scaleX = MAP_W / rect.width, scaleY = MAP_H / rect.height;
+  const x = (event.clientX - rect.left) * scaleX;
+  const y = (event.clientY - rect.top) * scaleY;
+  const lat = yToLat(y), lon = xToLon(x);
+
+  if (!isInsideOutline(lat, lon)){
+    setStatus("That looks outside India's outline — click within the shaded area.", true);
+    return;
+  }
+  setLocationAndQuery(lat, lon);
+}
+
+async function fetchRandomLocation(){
+  setStatus("Picking a random real location…", false);
+  try {
+    const response = await fetch(`${API_BASE}/random-location`);
+    if (!response.ok) throw new Error(`status ${response.status}`);
+    const data = await response.json();
+    await setLocationAndQuery(data.lat, data.lon);
+  } catch (err) {
+    setStatus("Couldn't reach the server for a random location. If it's been idle, it may still be waking up — try again in a few seconds.", true);
+  }
+}
+
+function describeNote(note){
+  return note && note.length > 0 ? `<div class="facility-note">${escapeHtml(note)}</div>` : "";
+}
+
+function escapeHtml(value){
+  return String(value).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+function renderFacilityCard(facility, rank){
+  const chip = facility.confirmed
+    ? `<span class="chip confirmed">Confirmed</span>`
+    : `<span class="chip unconfirmed">Unconfirmed</span>`;
+  const place = [facility.city, facility.state].filter(Boolean).join(", ");
+
+  const serviceBlock = facility.confirmed
+    ? `<div class="service-grid">
+        <div class="service-col has">
+          <h4>Has</h4>
+          ${facility.services_has.length ? `<ul>${facility.services_has.map(s => `<li>${escapeHtml(s)}</li>`).join("")}</ul>` : `<p class="service-empty">None of this scenario's services confirmed</p>`}
+        </div>
+        <div class="service-col missing">
+          <h4>Missing</h4>
+          ${facility.services_missing.length ? `<ul>${facility.services_missing.map(s => `<li>${escapeHtml(s)}</li>`).join("")}</ul>` : `<p class="service-empty">Has everything this scenario needs</p>`}
+        </div>
+      </div>`
+    : `<p class="service-empty">${escapeHtml(facility.services_note)}</p>`;
+
+  return `<div class="facility-card">
+    <div class="rank">${rank}</div>
+    <div class="facility-main">
+      <div class="facility-top">
+        <div>
+          <div class="facility-name">${escapeHtml(facility.name)}</div>
+          <div class="facility-place">${escapeHtml(place)}</div>
+        </div>
+        ${chip}
+      </div>
+      <div class="facility-stats">
+        <span>drive time <span class="num">~${facility.drive_min} min</span></span>
+        <span>match score <span class="num">${facility.score.toFixed(3)}</span></span>
+      </div>
+      <div class="blood-line">${escapeHtml(facility.blood_level_description)}</div>
+      ${serviceBlock}
+      ${describeNote(facility.note)}
+    </div>
+  </div>`;
+}
+
+async function runQuery(){
+  const resultsEl = document.getElementById("results");
+  resultsEl.innerHTML = `<p class="placeholder">Querying the live model…</p>`;
+  setStatus("Waking the server if it was idle — this can take up to a minute on the first request.", false);
+
+  try {
+    const response = await fetch(`${API_BASE}/recommend`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lat: selectedLat, lon: selectedLon, scenario: selectedScenario }),
+    });
+
+    if (!response.ok){
+      const body = await response.json().catch(() => ({}));
+      resultsEl.innerHTML = `<p class="placeholder">${escapeHtml(body.detail || `Request failed (status ${response.status})`)}</p>`;
+      setStatus("", false);
+      return;
+    }
+
+    const data = await response.json();
+    setStatus(`${data.candidates_considered} candidates considered near this point.`, false);
+    resultsEl.innerHTML = data.results.map((f, i) => renderFacilityCard(f, i + 1)).join("");
+  } catch (err) {
+    resultsEl.innerHTML = `<p class="placeholder">Couldn't reach the live server. If it's been idle it may still be waking up — wait a moment and try again.</p>`;
+    setStatus("Request failed.", true);
+  }
+}
+
+document.getElementById("map").addEventListener("click", handleMapClick);
+document.getElementById("randomBtn").addEventListener("click", fetchRandomLocation);
+renderScenarioRow();
+renderMap();
+</script>
+</body>
+</html>
