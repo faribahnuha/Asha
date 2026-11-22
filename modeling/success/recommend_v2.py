@@ -91,7 +91,15 @@ def score_candidates(world: dict[str, object], request: dict[str, object]) -> tu
     return cand, meta
 
 
-def blood_source_text(cand: dict[str, np.ndarray], i: int, banks: dict[str, np.ndarray]) -> dict[str, object]:
+def shown(p: float, cap: float) -> float:
+    """A probability as shown to users: never above `cap` (no estimate built on assumed parameters
+    and web-scraped evidence justifies certainty). Ranking and abstention use the uncapped value."""
+    assert 0.0 <= p <= 1.0 + 1e-9, "probability out of range"
+    assert 0.5 <= cap <= 1.0, "cap must be between 0.5 and 1"
+    return round(min(float(p), cap), 3)
+
+
+def blood_source_text(cand: dict[str, np.ndarray], i: int, banks: dict[str, np.ndarray], cap: float = 1.0) -> dict[str, object]:
     """Where the blood would come from, in words, with the numbers behind it."""
     assert 0 <= i < len(cand["id"]), "index out of range"
     assert "p_in_house" in cand, "blood factors missing"
@@ -103,7 +111,7 @@ def blood_source_text(cand: dict[str, np.ndarray], i: int, banks: dict[str, np.n
         b = int(cand["best_bank_idx"][i])
         source = (f"Nearest suitable licensed bank: {banks['name'][b]} ({cand['best_bank_km'][i]:.1f} km from the hospital, "
                   f"about {cand['best_bank_minutes'][i]:.0f} min including preparation)")
-    out = dict(source=source, p_blood_in_time=round(float(cand["p_blood"][i]), 3), backup_banks_in_time=int(cand["n_backups"][i]),
+    out = dict(source=source, p_blood_in_time=shown(float(cand["p_blood"][i]), cap), backup_banks_in_time=int(cand["n_backups"][i]),
                preparation_minutes=float(cand["prep_minutes"][i]))
     assert out["p_blood_in_time"] <= 1.0, "probability out of range"
     return out
@@ -113,10 +121,11 @@ def explain(cand: dict[str, np.ndarray], i: int, scen: dict[str, object], world:
     """One recommendation card: the three factors, quotes behind each requirement, blood source, caveats."""
     assert 0 <= i < len(cand["id"]), "index out of range"
     sigma = math.sqrt(math.log(1 + float(meta["travel_cv"]) ** 2))
+    cap = float(world["params"].get("display_probability_cap", 1.0))
     evidence = []
     for c in scen["required"]:                         # at most 3
         quotes = json.loads(str(cand[f"quotes_{c}"][i]) or "[]")
-        evidence.append(dict(capability=c, p=round(float(cand[f"adj_{c}"][i]), 3),
+        evidence.append(dict(capability=c, p=shown(float(cand[f"adj_{c}"][i]), cap),
                              quote=quotes[0]["quote"] if quotes else None, field=quotes[0]["field"] if quotes else None,
                              independent_certification="LaQshya" if (cand["laq_mot"][i] and c in ("obstetric_care", "surgical_capacity", "anaesthesia")) else None))
     # supporting capabilities: modelled ones by P >= 0.5; unmodelled ones (NICU, CT) by moderate+ evidence level
@@ -124,11 +133,11 @@ def explain(cand: dict[str, np.ndarray], i: int, scen: dict[str, object], world:
             or (f"level_{c}" in cand and int(cand[f"level_{c}"][i]) >= 2)]
     card = dict(facility_id=str(cand["id"][i]), name=str(cand["name"][i]), city=str(cand["city"][i]), state=str(cand["state"][i]),
                 phone=str(cand["phone"][i]) or None, lat=float(cand["lat"][i]), lon=float(cand["lon"][i]),
-                p_success=round(float(cand["p_success"][i]), 3), p_capable=round(float(cand["p_capable"][i]), 3),
-                p_arrive=round(float(cand["p_arrive"][i]), 3), straight_line_km=round(float(cand["km"][i]), 1),
+                p_success=shown(float(cand["p_success"][i]), cap), p_capable=shown(float(cand["p_capable"][i]), cap),
+                p_arrive=shown(float(cand["p_arrive"][i]), cap), straight_line_km=round(float(cand["km"][i]), 1),
                 travel_minutes_estimate=round(float(cand["minutes"][i])),
                 travel_minutes_80pct_range=[round(float(cand["minutes"][i]) * math.exp(-1.2816 * sigma)), round(float(cand["minutes"][i]) * math.exp(1.2816 * sigma))],
-                evidence=evidence, also_has=also, blood=blood_source_text(cand, i, world["banks"]),
+                evidence=evidence, also_has=also, blood=blood_source_text(cand, i, world["banks"], cap),
                 location_confidence=str(cand["location_confidence"][i]),
                 call_ahead=[q.format(products=scen["blood_products"]) for q in CALL_AHEAD])
     assert 0.0 <= card["p_success"] <= 1.0, "probability out of range"
