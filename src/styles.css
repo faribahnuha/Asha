@@ -16,12 +16,14 @@ button,input{font:inherit;color:inherit}
   place-items: center;
   background: #b54450;
   color: white;
-  border-radius: 50% 50% 50% 0;
-  transform: rotate(-45deg);
+  transform: none;
+  clip-path: path(
+    "M19 0 C22 7 34 17 34 25 C34 33 27 38 19 38 C11 38 4 33 4 25 C4 17 16 7 19 0 Z"
+  );
 }
 
 .drop svg {
-  transform: rotate(45deg);
+  transform: none;
 }
 
 .label{font-size:15px;font-weight:600;display:block;margin-bottom:11px}
