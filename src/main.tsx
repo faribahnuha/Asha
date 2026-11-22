@@ -6,8 +6,11 @@ import 'leaflet/dist/leaflet.css';
 import './styles.css';
 
 type Scenario = 'pregnancy_bleeding' | 'injury_bleeding' | 'severe_anemia';
-type Facility = { name:string; city:string; state:string; lat:number; lon:number; drive_min:number; distance_km:number; score:number; confirmed:boolean; note:string; address:string; phone:string; services:string[] };
-type ApiResponse = { scenario_label:string; candidates_considered:number; results:Facility[]; weights:Record<string,number> };
+type Evidence = { capability:string; p:number; quote:string|null; field:string|null; independent_certification:string|null };
+type Facility = { name:string; city:string; state:string; lat:number; lon:number; drive_min:number; distance_km:number; score:number; confirmed:boolean; note:string; address:string; phone:string; services:string[];
+  p_success?:number; p_capable?:number; p_blood_in_time?:number; p_arrive_in_time?:number; travel_minutes_80pct_range?:number[]; evidence?:Evidence[]; blood_source?:string; backup_blood_banks_in_time?:number; location_confidence?:string; call_ahead?:string[] };
+type ApiResponse = { scenario_label:string; candidates_considered:number; results:Facility[]; weights:Record<string,number>; status?:string; message?:string|null; why_not_closest?:string|null };
+const pct = (x?:number) => typeof x === 'number' ? `${Math.round(x*100)}%` : '–';
 type Location = { label:string; lat:number; lon:number; resolvedLabel:string };
 type PlaceSuggestion = { display_name:string; lat:string; lon:string; type?:string };
 type Language = 'en'|'hi'|'bn'|'mr'|'te'|'ta'|'gu'|'ur';
@@ -34,8 +37,44 @@ const scenarios: {id:Scenario; title:string; sub:string}[] = [
 const scenarioTitle = (id:Scenario) => scenarios.find(s => s.id === id)?.title || '';
 const serviceNames: Record<string,string> = { icu:'ICU', nicu:'NICU', c_section:'C-section / obstetric surgery', obstetrics:'Obstetrics / maternity care', emergency_surgery:'Emergency surgery', trauma_care:'Surgery / trauma care', surgery:'Surgery', general_medicine:'General medicine', ed_24x7:'24/7 emergency assessment', transfusion:'Blood transfusion', blood_bank:'Blood bank support', ct_scan:'CT scan', mri:'MRI' };
 
-function Logo(){return <div className="brand"><span className="drop"><Cross size={18}/></span><span>Asha</span></div>}
-function Home({scenario,setScenario,onSearch,loading,error,location,setLocation}:{scenario:Scenario;setScenario:(s:Scenario)=>void;onSearch:()=>void;loading:boolean;error:string;location:Location;setLocation:(l:Location)=>void}){
+function Logo() {
+  return (
+    <div className="brand">
+      <svg
+        className="drop-logo"
+        viewBox="0 0 100 100"
+        aria-hidden="true"
+      >
+        {/* Upright blood-drop shape */}
+        <path
+          fill="#b54450"
+          d="
+            M50 2
+            C45 17 32 36 21 51
+            C12 64 10 74 13 83
+            C18 96 32 100 50 100
+            C68 100 82 96 87 83
+            C90 74 88 64 79 51
+            C68 36 55 17 50 2
+            Z
+          "
+        />
+
+        {/* Medical cross */}
+        <path
+          d="M50 47V75M36 61H64"
+          fill="none"
+          stroke="white"
+          strokeWidth="9"
+          strokeLinecap="round"
+        />
+      </svg>
+
+      <span>Asha</span>
+      <small>UI DEMO</small>
+    </div>
+  );
+}function Home({scenario,setScenario,onSearch,loading,error,location,setLocation}:{scenario:Scenario;setScenario:(s:Scenario)=>void;onSearch:()=>void;loading:boolean;error:string;location:Location;setLocation:(l:Location)=>void}){
   const {language,setLanguage,t}=useI18n();
   const [suggestions,setSuggestions]=useState<PlaceSuggestion[]>([]);
   const [suggesting,setSuggesting]=useState(false);
@@ -50,12 +89,12 @@ function Home({scenario,setScenario,onSearch,loading,error,location,setLocation}
 }
 function FitMap({location,results}:{location:Location;results:Facility[]}){const map=useMap();React.useEffect(()=>{const points:[[number,number],...[number,number][]]=[[location.lat,location.lon],...results.map(f=>[f.lat,f.lon] as [number,number])];map.fitBounds(points,{padding:[32,32],maxZoom:12})},[map,location,results]);return null}
 function RealMap({results,location,onSelect}:{results:Facility[];location:Location;onSelect:(f:Facility)=>void}){const {t}=useI18n();return <div className="map" aria-label="Map of actual patient and facility coordinates"><MapContainer center={[location.lat,location.lon]} zoom={11} scrollWheelZoom={false}><TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/><FitMap location={location} results={results}/><CircleMarker center={[location.lat,location.lon]} radius={9} pathOptions={{color:'#fff',weight:3,fillColor:'#5d90c9',fillOpacity:1}}><Popup>Patient location<br/>{location.lat.toFixed(5)}, {location.lon.toFixed(5)}</Popup></CircleMarker>{results.map((f,i)=><CircleMarker key={f.name+i} center={[f.lat,f.lon]} radius={15} pathOptions={{color:'#fff',weight:2,fillColor:i===0?'#173451':'#fff',fillOpacity:1}} eventHandlers={{click:()=>onSelect(f)}}><Tooltip permanent direction="center" className={i===0?'marker-label best-marker':'marker-label'}>{i+1}</Tooltip><Popup><strong>{i+1}. {f.name}</strong><br/>{f.lat.toFixed(5)}, {f.lon.toFixed(5)}<br/>{f.distance_km.toFixed(1)} km estimated</Popup></CircleMarker>)}</MapContainer><span className="map-note">{t('map')}</span></div>}
-function Results({data,scenario,location,onBack,onSelect}:{data:ApiResponse;scenario:Scenario;location:Location;onBack:()=>void;onSelect:(f:Facility)=>void}){const {language,t}=useI18n();const sKey=scenario==='pregnancy_bleeding'?'pregnancy':scenario==='injury_bleeding'?'injury':'anemia';return <main className="phone results" dir={language==='ur'?'rtl':'ltr'}><header><button onClick={onBack}><ArrowLeft/></button><h1>{t('near')}</h1></header><div className="subhead"><span>{location.label}</span><button onClick={onBack}>{t('edit')}</button></div><div className="scenario-bar"><Plus size={20}/>{t(sKey)}</div><p className="eyebrow">LIVE MODEL · {data.candidates_considered} {t('candidates')}</p><RealMap results={data.results} location={location} onSelect={onSelect}/><section className="matches"><div className="match-head"><div><h2>{data.results.length} {t('matches')}</h2><p>{t('fit')}</p></div><SlidersHorizontal/></div>{data.results.map((f,i)=><button className={'card '+(i===0?'best':'')} key={f.name+i} onClick={()=>onSelect(f)}><span className="rank">{i+1}</span><div className="card-body">{i===0&&<em>{t('best')}</em>}{i>0&&<em>{t(i===1?'alternative':'backup')}</em>}<h3>{f.name}</h3><p>{t(f.confirmed?'confirmed':'unconfirmed')}</p><footer><b>{f.distance_km.toFixed(1)} km · ~{Math.round(f.drive_min)} min</b><span>{t('more')} <ChevronRight/></span></footer></div></button>)}<small className="disclaimer">{t('modelWarning')}</small></section></main>}
+function Results({data,scenario,location,onBack,onSelect}:{data:ApiResponse;scenario:Scenario;location:Location;onBack:()=>void;onSelect:(f:Facility)=>void}){const {language,t}=useI18n();const sKey=scenario==='pregnancy_bleeding'?'pregnancy':scenario==='injury_bleeding'?'injury':'anemia';return <main className="phone results" dir={language==='ur'?'rtl':'ltr'}><header><button onClick={onBack}><ArrowLeft/></button><h1>{t('near')}</h1></header><div className="subhead"><span>{location.label}</span><button onClick={onBack}>{t('edit')}</button></div><div className="scenario-bar"><Plus size={20}/>{t(sKey)}</div><p className="eyebrow">LIVE MODEL · {data.candidates_considered} {t('candidates')}</p>{data.message&&<p className="model-warning">{data.message}</p>}<RealMap results={data.results} location={location} onSelect={onSelect}/><section className="matches"><div className="match-head"><div><h2>{data.results.length} {t('matches')}</h2><p>{t('fit')}</p></div><SlidersHorizontal/></div>{data.results.map((f,i)=><button className={'card '+(i===0?'best':'')} key={f.name+i} onClick={()=>onSelect(f)}><span className="rank">{i+1}</span><div className="card-body">{i===0&&<em>{t('best')}</em>}{i>0&&<em>{t(i===1?'alternative':'backup')}</em>}<h3>{f.name}</h3><p>{t(f.confirmed?'confirmed':'unconfirmed')}</p>{typeof f.p_success==='number'&&<p className="chance">{pct(f.p_success)} estimated chance of success · blood in time {pct(f.p_blood_in_time)}</p>}<footer><b>{f.distance_km.toFixed(1)} km · ~{Math.round(f.drive_min)} min</b><span>{t('more')} <ChevronRight/></span></footer></div></button>)}{data.why_not_closest&&<small className="why-not">{data.why_not_closest}</small>}<small className="disclaimer">{t('modelWarning')}</small></section></main>}
 function Details({facility,scenario,onClose}:{facility:Facility;scenario:Scenario;onClose:()=>void}){
   const {t}=useI18n();
   const display = facility.services.map(s=>serviceNames[s]||s.replace(/_/g, ' '));
   const relevant = scenario==='pregnancy_bleeding'?['ICU','NICU','C-section / obstetric surgery','Obstetrics / maternity care','Blood bank support','24/7 emergency assessment']:scenario==='injury_bleeding'?['ICU','Emergency surgery','Surgery / trauma care','CT scan','Blood bank support','24/7 emergency assessment']:['ICU','General medicine','Blood transfusion','Blood bank support','24/7 emergency assessment'];
-  return <div className="overlay"><div className="sheet"><div className="handle"/><div className="sheet-top"><span>{t('details')}</span><button onClick={onClose}><X/></button></div><h1>{facility.name}</h1><p className="muted">{[facility.city,facility.state].filter(Boolean).join(', ')} · {facility.distance_km.toFixed(1)} km · ~{Math.round(facility.drive_min)} min</p><div className="why"><b>01 / {t('why')}</b><h3>{t('servicesFor')} {scenarioTitle(scenario).toLowerCase()}</h3><p>{facility.confirmed?t('confirmed'):t('unconfirmed')}</p></div><h2>{t('coverage')}</h2><span className="coverage-label">{t('equipment')}</span><div className="services">{relevant.map(name=>{const listed=display.includes(name)|| (name==='Blood bank support');return <div className={listed?'listed':''} key={name}><b>{name}</b><span>{listed?t('listed'):t('unconfirmed')}</span></div>})}</div><p className="confirm">{t('confirm')}</p>{facility.phone&&<a className="primary call" href={'tel:'+facility.phone.split(';')[0]}>{t('call')}</a>}<button className="primary" onClick={onClose}>{t('back')}</button><small className="sheet-note">{t('modelWarning')}</small></div></div>
+  return <div className="overlay"><div className="sheet"><div className="handle"/><div className="sheet-top"><span>{t('details')}</span><button onClick={onClose}><X/></button></div><h1>{facility.name}</h1><p className="muted">{[facility.city,facility.state].filter(Boolean).join(', ')} · {facility.distance_km.toFixed(1)} km · ~{Math.round(facility.drive_min)} min</p><div className="why"><b>01 / {t('why')}</b><h3>{t('servicesFor')} {scenarioTitle(scenario).toLowerCase()}</h3><p>{facility.confirmed?t('confirmed'):t('unconfirmed')}</p>{typeof facility.p_success==='number'&&<p className="factors"><b>{pct(facility.p_success)}</b> estimated chance of success = capable {pct(facility.p_capable)} × blood in time {pct(facility.p_blood_in_time)} × arrives in time {pct(facility.p_arrive_in_time)}</p>}{facility.evidence&&<ul className="evidence">{facility.evidence.map(e=><li key={e.capability}><b>{e.capability.replace(/_/g,' ')} · {pct(e.p)}</b>{e.quote?<q>{e.quote}</q>:<span>No supporting text in this facility's record</span>}{e.independent_certification&&<em>Independently certified: {e.independent_certification}</em>}</li>)}</ul>}{facility.blood_source&&<p className="blood-source"><b>Blood:</b> {facility.blood_source}</p>}</div><h2>{t('coverage')}</h2><span className="coverage-label">{t('equipment')}</span><div className="services">{relevant.map(name=>{const listed=display.includes(name)|| (name==='Blood bank support');return <div className={listed?'listed':''} key={name}><b>{name}</b><span>{listed?t('listed'):t('unconfirmed')}</span></div>})}</div><p className="confirm">{t('confirm')}</p>{facility.call_ahead&&<ul className="call-ahead">{facility.call_ahead.map(q=><li key={q}>{q}</li>)}</ul>}{facility.phone&&<a className="primary call" href={'tel:'+facility.phone.split(';')[0]}>{t('call')}</a>}<button className="primary" onClick={onClose}>{t('back')}</button><small className="sheet-note">{t('modelWarning')}</small></div></div>
 }
 function App(){const [language,setLanguage]=useState<Language>('en');const [scenario,setScenario]=useState<Scenario>('pregnancy_bleeding');const [location,setLocation]=useState<Location>({label:'Sanganer, Jaipur, Rajasthan',lat:26.8197,lon:75.7659,resolvedLabel:'Sanganer, Jaipur, Rajasthan'});const [data,setData]=useState<ApiResponse|null>(null);const [selected,setSelected]=useState<Facility|null>(null);const [loading,setLoading]=useState(false);const [error,setError]=useState('');
   async function resolveLocation(){if(location.label.trim()===location.resolvedLabel)return location;const q=encodeURIComponent(location.label.trim());const r=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=in&q=${q}`);if(!r.ok)throw new Error('The location search failed.');const matches=await r.json();if(!matches.length)throw new Error('Location not found. Try adding the district or state.');const resolved={label:matches[0].display_name.split(',').slice(0,3).join(','),lat:Number(matches[0].lat),lon:Number(matches[0].lon),resolvedLabel:matches[0].display_name.split(',').slice(0,3).join(',')};setLocation(resolved);return resolved}

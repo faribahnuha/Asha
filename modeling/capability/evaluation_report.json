@@ -1,0 +1,191 @@
+{
+  "trained_at": "2026-11-22T10:33:50",
+  "n_labels": 218,
+  "n_unclear_excluded": 22,
+  "lambda_chosen": 3.0,
+  "cv_log_loss_by_lambda": {
+    "0.03": 0.514,
+    "0.1": 0.437,
+    "0.3": 0.373,
+    "1.0": 0.326,
+    "3.0": 0.31,
+    "10.0": 0.325
+  },
+  "sample_metrics": {
+    "model": {
+      "auc": 0.942,
+      "brier": 0.093,
+      "log_loss": 0.31,
+      "accuracy_at_0_5": 0.872,
+      "ece": 0.049
+    },
+    "level_baseline": {
+      "auc": 0.796,
+      "brier": 0.159,
+      "log_loss": 0.481,
+      "accuracy_at_0_5": 0.706,
+      "ece": 0.035
+    },
+    "keyword_baseline": {
+      "auc": 0.726,
+      "brier": 0.247,
+      "log_loss": 1.169,
+      "accuracy_at_0_5": 0.748,
+      "ece": 0.242
+    }
+  },
+  "population_weighted_metrics": {
+    "model": {
+      "auc": 0.951,
+      "brier": 0.082,
+      "log_loss": 0.265,
+      "accuracy_at_0_5": 0.886,
+      "ece": 0.057
+    },
+    "level_baseline": {
+      "auc": 0.887,
+      "brier": 0.101,
+      "log_loss": 0.329,
+      "accuracy_at_0_5": 0.822,
+      "ece": 0.061
+    },
+    "keyword_baseline": {
+      "auc": 0.868,
+      "brier": 0.171,
+      "log_loss": 0.812,
+      "accuracy_at_0_5": 0.825,
+      "ece": 0.165
+    }
+  },
+  "model_auc_95ci": [
+    0.908,
+    0.97
+  ],
+  "reliability_table": [
+    {
+      "bin": "0.0-0.2",
+      "n": 70,
+      "mean_predicted": 0.04,
+      "observed": 0.071
+    },
+    {
+      "bin": "0.2-0.4",
+      "n": 12,
+      "mean_predicted": 0.297,
+      "observed": 0.0
+    },
+    {
+      "bin": "0.4-0.6",
+      "n": 16,
+      "mean_predicted": 0.514,
+      "observed": 0.5
+    },
+    {
+      "bin": "0.6-0.8",
+      "n": 27,
+      "mean_predicted": 0.705,
+      "observed": 0.63
+    },
+    {
+      "bin": "0.8-1.0",
+      "n": 93,
+      "mean_predicted": 0.916,
+      "observed": 0.946
+    }
+  ],
+  "per_capability": {
+    "obstetric_care": {
+      "n": 26,
+      "positives": 12,
+      "auc_model": 1.0,
+      "auc_level_baseline": 0.935
+    },
+    "surgical_capacity": {
+      "n": 26,
+      "positives": 17,
+      "auc_model": 0.895,
+      "auc_level_baseline": 0.833
+    },
+    "anaesthesia": {
+      "n": 28,
+      "positives": 23,
+      "auc_model": 1.0,
+      "auc_level_baseline": 1.0
+    },
+    "emergency_24x7": {
+      "n": 28,
+      "positives": 11,
+      "auc_model": 0.963,
+      "auc_level_baseline": 0.882
+    },
+    "trauma_surgery": {
+      "n": 27,
+      "positives": 7,
+      "auc_model": 0.886,
+      "auc_level_baseline": 0.829
+    },
+    "critical_care": {
+      "n": 26,
+      "positives": 15,
+      "auc_model": 0.836,
+      "auc_level_baseline": 0.8
+    },
+    "inpatient_medicine": {
+      "n": 28,
+      "positives": 11,
+      "auc_model": 0.861,
+      "auc_level_baseline": 0.701
+    },
+    "blood_service_claim": {
+      "n": 29,
+      "positives": 22,
+      "auc_model": 1.0,
+      "auc_level_baseline": 0.867
+    }
+  },
+  "independent_checks": {
+    "blood_directory": {
+      "note": "Hospitals linked to a licensed government blood bank vs not, among hospitals whose text claims blood",
+      "n_claiming": 705,
+      "n_claiming_and_linked": 186,
+      "auc_linked_vs_not": 0.604,
+      "mean_p_linked": 0.932,
+      "mean_p_not_linked": 0.887,
+      "linked_but_text_silent": 163
+    },
+    "laqshya": {
+      "note": "LaQshya-certified public hospitals vs other public/unknown-ownership hospitals",
+      "n_public": 1143,
+      "n_certified": 55,
+      "auc_obstetric_care": 0.68,
+      "mean_p_obstetric_certified": 0.578,
+      "mean_p_obstetric_other": 0.37,
+      "auc_surgical_capacity": 0.637
+    }
+  },
+  "coefficients": {
+    "log_n_fields": 1.056,
+    "is_hospital": 0.935,
+    "cap_anaesthesia": 0.749,
+    "narrow_specialty_name": -0.741,
+    "cap_trauma_surgery": -0.696,
+    "level_moderate": 0.63,
+    "level_strong": 0.6,
+    "quote_in_capability": 0.538,
+    "quote_in_procedure": -0.451,
+    "cap_emergency_24x7": -0.44,
+    "cap_blood_service_claim": 0.436,
+    "cap_surgical_capacity": 0.314,
+    "level_weak": 0.287,
+    "cap_inpatient_medicine": -0.247,
+    "log_beds": 0.194,
+    "quote_in_description": -0.188,
+    "specialties_only": -0.187,
+    "completeness_score": 0.17,
+    "cap_obstetric_care": -0.154,
+    "beds_known": -0.135,
+    "log_flag_count": 0.031,
+    "has_official_site_source": 0.03,
+    "cap_critical_care": 0.027
+  }
+}

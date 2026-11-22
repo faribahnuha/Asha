@@ -24,7 +24,7 @@ import sys
 from pathlib import Path
 
 _MODELING_ROOT = Path(__file__).resolve().parent.parent
-for _sibling_dir in ("candidate_pool", "scoring", "recommend"):
+for _sibling_dir in ("candidate_pool", "scoring", "recommend", "capability", "success"):
     _sibling_path = str(_MODELING_ROOT / _sibling_dir)
     if _sibling_path not in sys.path:
         sys.path.append(_sibling_path)
@@ -32,6 +32,10 @@ for _sibling_dir in ("candidate_pool", "scoring", "recommend"):
 import candidate_pool  # noqa: E402  (see sys.path setup above)
 import scoring  # noqa: E402  (see sys.path setup above)
 import recommend  # noqa: E402  (see sys.path setup above)
+import capability_model  # noqa: E402  (see sys.path setup above)
+import success_model  # noqa: E402  (see sys.path setup above)
+import blood_access  # noqa: E402  (see sys.path setup above)
+import recommend_v2  # noqa: E402  (see sys.path setup above)
 
 # Fixed, known list of (module_name, module) pairs to check. Not discovered
 # dynamically at runtime — adding a new modeling/ module means adding one
@@ -40,6 +44,10 @@ MODULES_TO_CHECK: tuple[tuple[str, object], ...] = (
     ("candidate_pool", candidate_pool),
     ("scoring", scoring),
     ("recommend", recommend),
+    ("capability_model", capability_model),
+    ("success_model", success_model),
+    ("blood_access", blood_access),
+    ("recommend_v2", recommend_v2),
 )
 
 

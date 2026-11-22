@@ -1,89 +1,68 @@
 """
 ==============================================================================
-MODULE: app.py
+MODULE: app_v2.py                              (HTTP wrapper around the v2 chance-of-success model)
 ------------------------------------------------------------------------------
-- HOW THIS RELATES TO THE LAST FILE: this is an HTTP wrapper around
-  modeling/recommend/recommend.py — it does not re-implement any scoring
-  logic, it only parses a request, calls recommend(), and serializes the
-  result. It is infrastructure glue, like modeling/demo/try_it_out.py, not a
-  pipeline stage, so it is NOT held to modeling/CLAUDE.md's strict rules
-  (bounded loops, assertion density, etc.) the way candidate_pool.py,
-  scoring.py, and recommend.py are — those rules exist for the model logic
-  itself, not for a web framework's request-handling glue around it.
-- WHAT THIS FILE DOES: a small FastAPI app with one real endpoint,
-  POST /recommend, that takes a patient location and scenario and returns
-  the same top-3 result modeling/demo/try_it_out.py prints to a terminal,
-  as JSON. Loads the dataset CSVs once at startup, not per-request.
-- KNOWN LIMITATIONS / ASSUMPTIONS: uses the same ASSUMED (not measured)
-  detour_factor/avg_speed_kmph as the rest of modeling/demo/ — see
-  candidate_pool.py's header. This file is meant to be run with uvicorn
-  locally, or deployed behind any ASGI-compatible host; see this repo's
-  notes on what that does and doesn't mean for Vercel specifically.
+- HOW THIS RELATES TO THE LAST FILE: wraps modeling/success/recommend_v2.py. It does not re-implement
+  any scoring; it parses a request, calls recommend(), and serialises the result. Infrastructure glue,
+  like the v1 app, so it is not held to modeling/CLAUDE.md's per-function assertion density.
+- WHAT THIS FILE DOES: POST /recommend takes {lat, lon, scenario} (+ optional hb, rh_negative, night)
+  and returns the top hospitals ranked by P(success). The response keeps every field the React UI
+  already reads (name, city, state, lat, lon, drive_min, distance_km, score, confirmed, note, address,
+  phone, services, weights, candidates_considered, scenario_label) and adds the v2 detail (the three
+  probabilities, verbatim evidence quotes, blood source, call-ahead questions, abstention status).
+- KNOWN LIMITATIONS / ASSUMPTIONS: `score` is now P(success), an estimate built on stated assumptions
+  (dataset/ref/parameters.csv), not a guarantee; `weights` holds the top result's three factors
+  because v2 has no criterion weights; service keys are mapped onto the UI's existing vocabulary.
 ==============================================================================
 """
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
+from typing import Optional
 
-import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-_MODELING_ROOT = _REPO_ROOT / "modeling"
-for _sibling_dir in ("candidate_pool", "scoring", "recommend", "demo"):
-    _sibling_path = str(_MODELING_ROOT / _sibling_dir)
-    if _sibling_path not in sys.path:
-        sys.path.append(_sibling_path)
+_MODELING_ROOT = Path(__file__).resolve().parent.parent
+for _sibling_dir in ("success", "capability"):
+    _path = str(_MODELING_ROOT / _sibling_dir)
+    if _path not in sys.path:
+        sys.path.append(_path)
 
-import candidate_pool as cp  # noqa: E402
-import recommend as R  # noqa: E402
-import try_it_out as demo  # noqa: E402
+import recommend_v2 as R  # noqa: E402
 
-# -----------------------------------------------------------------------------
-# MODULE-LEVEL CONSTANTS
-# -----------------------------------------------------------------------------
-
-API_TITLE: str = "Asha Facility Recommendation API"
-API_VERSION: str = "0.1.0"
-
-# Loaded once, at import time (process startup) — not reloaded per request.
-# This is the thing that does NOT work the same way on every host; see the
-# deployment notes in this repo's README / this session's chat for why.
-BLOOD_POINTS: pd.DataFrame
-FACILITY_SERVICES: pd.DataFrame
-BLOOD_POINTS, FACILITY_SERVICES = demo.load_datasets()
+API_TITLE = "Asha Facility Recommendation API (v2: chance of success)"
+API_VERSION = "2.0.0"
+WORLD = R.load_world()
+SITE_INDEX = {fid: i for i, fid in enumerate(WORLD["sites"]["id"].tolist())}
 
 app = FastAPI(title=API_TITLE, version=API_VERSION)
-
-# A frontend hosted on a different domain (e.g. a Vercel-hosted UI calling
-# this API on Render) is a cross-origin request by definition — without
-# this, the browser blocks it silently and it looks like the API is broken
-# when it isn't. "*" is deliberately permissive for a public, read-only,
-# no-auth recommendation endpoint with no patient data stored; narrow this
-# to specific origins if that stops being true.
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["GET", "POST"],
-    allow_headers=["*"],
-)
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "POST"], allow_headers=["*"])
 
 
 class RecommendRequest(BaseModel):
-    """Request body for POST /recommend."""
+    lat: float = Field(..., ge=6.0, le=38.0, description="Patient latitude (India)")
+    lon: float = Field(..., ge=68.0, le=98.0, description="Patient longitude (India)")
+    scenario: str = Field(..., description="pregnancy_bleeding | injury_bleeding | severe_anemia | not_sure")
+    hb: Optional[float] = Field(None, ge=1.0, le=20.0, description="Patient haemoglobin in g/dL, if known")
+    rh_negative: bool = Field(False, description="Patient is known to be Rh-negative")
+    night: bool = Field(False, description="Request is at night (banks not listed as 24x7 treated as closed)")
 
-    lat: float = Field(..., ge=-90.0, le=90.0, description="Patient latitude")
-    lon: float = Field(..., ge=-180.0, le=180.0, description="Patient longitude")
-    scenario: str = Field(..., description="One of: " + ", ".join(key for key, _ in demo.SCENARIO_MENU))
+
+class Evidence(BaseModel):
+    capability: str
+    p: float
+    quote: Optional[str]
+    field: Optional[str]
+    independent_certification: Optional[str]
 
 
 class FacilityResult(BaseModel):
-    """One ranked facility in the response."""
-
+    # fields the existing UI reads
     name: str
     city: str
     state: str
@@ -97,76 +76,99 @@ class FacilityResult(BaseModel):
     address: str
     phone: str
     services: list[str]
+    # v2 detail
+    facility_id: str
+    p_success: float
+    p_capable: float
+    p_blood_in_time: float
+    p_arrive_in_time: float
+    travel_minutes_80pct_range: list[float]
+    evidence: list[Evidence]
+    blood_source: str
+    backup_blood_banks_in_time: int
+    location_confidence: str
+    call_ahead: list[str]
 
 
 class RecommendResponse(BaseModel):
-    """Response body for POST /recommend."""
-
     scenario_label: str
     candidates_considered: int
     results: list[FacilityResult]
     weights: dict[str, float]
+    status: str
+    message: Optional[str] = None
+    why_not_closest: Optional[str] = None
+    window_minutes: float
+    area: str
+    blood_products_needed: str
+    nearest_licensed_blood_bank: Optional[dict] = None
+    nearest_whole_blood_bank: Optional[dict] = None
+
+
+def ui_services(i: int, card: dict) -> list[str]:
+    """Map v2 capability probabilities onto the UI's existing service keys (P >= 0.5, or moderate+ evidence)."""
+    s = WORLD["sites"]
+    p = lambda c: float(s[f"p_{c}"][i])
+    lvl = lambda c: int(s[f"level_{c}"][i])
+    quotes = json.loads(str(s["quotes_obstetric_care"][i]) or "[]") + json.loads(str(s["quotes_surgical_capacity"][i]) or "[]")
+    out = []
+    if p("critical_care") >= 0.5: out.append("icu")
+    if lvl("neonatal_care") >= 2: out.append("nicu")
+    if any(q.get("service") == "csection" for q in quotes): out.append("c_section")
+    if p("obstetric_care") >= 0.5: out.append("obstetrics")
+    if p("emergency_24x7") >= 0.5 and p("surgical_capacity") >= 0.5: out.append("emergency_surgery")
+    if p("trauma_surgery") >= 0.5: out.append("trauma_care")
+    if p("surgical_capacity") >= 0.5: out.append("surgery")
+    if p("inpatient_medicine") >= 0.5: out.append("general_medicine")
+    if p("emergency_24x7") >= 0.5: out.append("ed_24x7")
+    if card["blood"]["p_blood_in_time"] >= 0.5: out.append("transfusion")
+    if int(s["in_house_level"][i]) > 0 or p("blood_service_claim") >= 0.5: out.append("blood_bank")
+    if lvl("ct_imaging") >= 2: out.append("ct_scan")
+    return out
+
+
+def to_result(card: dict, status: str) -> FacilityResult:
+    i = SITE_INDEX[card["facility_id"]]
+    note = (f"Chance of success {card['p_success']:.0%} (capable {card['p_capable']:.0%} · blood in time "
+            f"{card['blood']['p_blood_in_time']:.0%} · arrives in time {card['p_arrive']:.0%}). Blood: {card['blood']['source']}.")
+    if status != "recommended":
+        note = "Not a confident option. " + note
+    return FacilityResult(
+        name=card["name"], city=card["city"] or "", state=card["state"] or "", lat=card["lat"], lon=card["lon"],
+        drive_min=float(card["travel_minutes_estimate"]), distance_km=float(card["straight_line_km"]), score=card["p_success"],
+        confirmed=card["p_capable"] >= 0.5, note=note, address=str(WORLD["sites"]["address"][i] or ""),
+        phone=card["phone"] or "", services=ui_services(i, card), facility_id=card["facility_id"], p_success=card["p_success"],
+        p_capable=card["p_capable"], p_blood_in_time=card["blood"]["p_blood_in_time"], p_arrive_in_time=card["p_arrive"],
+        travel_minutes_80pct_range=[float(x) for x in card["travel_minutes_80pct_range"]],
+        evidence=[Evidence(**e) for e in card["evidence"]], blood_source=card["blood"]["source"],
+        backup_blood_banks_in_time=card["blood"]["backup_banks_in_time"], location_confidence=card["location_confidence"],
+        call_ahead=card["call_ahead"])
+
+
+@app.get("/")
+def root() -> dict[str, object]:
+    return {"service": API_TITLE, "version": API_VERSION, "endpoints": {"health": "/health", "recommend": "POST /recommend", "docs": "/docs"}}
 
 
 @app.get("/health")
-def health_check() -> dict[str, str]:
-    """Plain liveness check — confirms the process is up and data loaded,
-    without running the model.
-    """
-    assert len(BLOOD_POINTS) > 0 and len(FACILITY_SERVICES) > 0, "datasets failed to load at startup"
-    return {"status": "ok", "candidates_loaded": str(len(BLOOD_POINTS))}
+def health() -> dict[str, str]:
+    return {"status": "ok", "model": "v2 chance of success", "treatment_sites": str(len(WORLD["sites"]["id"])),
+            "licensed_blood_banks": str(len(WORLD["banks"]["id"]))}
 
 
 @app.post("/recommend", response_model=RecommendResponse)
 def recommend_endpoint(request: RecommendRequest) -> RecommendResponse:
-    """Run the real model for one patient request and return the top 3.
-
-    PARAMETERS:
-        request: validated by pydantic before this function ever runs —
-            lat/lon range and scenario presence are already guaranteed.
-    """
-    valid_scenarios = [key for key, _ in demo.SCENARIO_MENU]
-    if request.scenario not in valid_scenarios:
-        raise HTTPException(status_code=422, detail=f"scenario must be one of {valid_scenarios}")
-
-    nearby = demo.narrow_to_nearby(BLOOD_POINTS, request.scenario, request.lat, request.lon)
-    if nearby.empty:
-        raise HTTPException(status_code=404, detail="No candidates found anywhere near this location")
-
-    result, weights = R.recommend(
-        nearby, FACILITY_SERVICES, request.lat, request.lon, request.scenario,
-        demo.ASSUMED_DETOUR_FACTOR, demo.ASSUMED_AVG_SPEED_KMPH,
-    )
-    assert len(result) >= 1, "recommend() must return at least one row when candidates exist"
-
-    facility_results = [
-        FacilityResult(
-            name=str(row.get("name", row["unique_id"])),
-            city=str(row.get("city", "")) if pd.notna(row.get("city")) else "",
-            state=str(row.get("state_std", "")) if pd.notna(row.get("state_std")) else "",
-            lat=float(row["lat"]),
-            lon=float(row["lon"]),
-            drive_min=round(float(row["drive_min"]), 1),
-            distance_km=round(float(row["drive_min"]) * demo.ASSUMED_AVG_SPEED_KMPH / 60.0, 1),
-            score=round(float(row["score"]), 3),
-            confirmed=bool(row.get("needed_services_confirmed", False)),
-            note=str(row.get("note", "")),
-            address=str(row.get("address", "")) if pd.notna(row.get("address")) else "",
-            phone=str(row.get("phone_std", "")) if pd.notna(row.get("phone_std")) else "",
-            services=(
-                sorted(
-                    FACILITY_SERVICES.loc[
-                        FACILITY_SERVICES["unique_id"] == row["unique_id"], "service"
-                    ].dropna().astype(str).unique().tolist()
-                )
-            ),
-        )
-        for _, row in result.iterrows()
-    ]
-
+    if request.scenario not in WORLD["scenarios"]:
+        raise HTTPException(status_code=422, detail=f"scenario must be one of {sorted(WORLD['scenarios'])}")
+    res = R.recommend(WORLD, request.lat, request.lon, request.scenario, hb=request.hb,
+                      rh_negative=request.rh_negative, night=request.night)
+    if not res["results"]:
+        raise HTTPException(status_code=404, detail="No hospital found within the search radius of this location")
+    top = res["results"][0]
     return RecommendResponse(
-        scenario_label=dict(demo.SCENARIO_MENU)[request.scenario],
-        candidates_considered=int(len(nearby)),
-        results=facility_results,
-        weights={key: round(float(value), 3) for key, value in weights.items()},
-    )
+        scenario_label=res["meta"]["scenario_label"], candidates_considered=res["meta"]["candidates"],
+        results=[to_result(c, res["status"]) for c in res["results"]],
+        weights={"p_capable": top["p_capable"], "p_blood_in_time": top["blood"]["p_blood_in_time"], "p_arrive_in_time": top["p_arrive"]},
+        status=res["status"], message=res.get("message"), why_not_closest=res.get("why_not_closest"),
+        window_minutes=res["meta"]["window_minutes"], area=res["meta"]["area"], blood_products_needed=res["meta"]["blood_products"],
+        nearest_licensed_blood_bank=res.get("nearest_licensed_blood_bank"), nearest_whole_blood_bank=res.get("nearest_whole_blood_bank"))

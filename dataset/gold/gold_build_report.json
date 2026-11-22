@@ -1,0 +1,97 @@
+{
+  "built_at": "2026-11-22T11:19:33",
+  "treatment_sites": 9474,
+  "blood_sources": 3269,
+  "blood_sources_by_level": {
+    "1": 475,
+    "3": 1147,
+    "2": 1647
+  },
+  "capability_coverage": {
+    "obstetric_care": {
+      "none": 4845,
+      "strong": 2640,
+      "weak": 1934,
+      "moderate": 55
+    },
+    "surgical_capacity": {
+      "none": 5078,
+      "strong": 2861,
+      "weak": 1263,
+      "moderate": 272
+    },
+    "anaesthesia": {
+      "none": 7569,
+      "strong": 704,
+      "weak": 1067,
+      "moderate": 134
+    },
+    "emergency_24x7": {
+      "none": 4591,
+      "strong": 2515,
+      "weak": 2152,
+      "moderate": 216
+    },
+    "trauma_surgery": {
+      "none": 4091,
+      "strong": 3785,
+      "weak": 1293,
+      "moderate": 305
+    },
+    "critical_care": {
+      "none": 6509,
+      "strong": 1655,
+      "weak": 1202,
+      "moderate": 108
+    },
+    "neonatal_care": {
+      "none": 7902,
+      "weak": 728,
+      "strong": 809,
+      "moderate": 35
+    },
+    "inpatient_medicine": {
+      "weak": 4121,
+      "strong": 2828,
+      "none": 2459,
+      "moderate": 66
+    },
+    "ct_imaging": {
+      "none": 7966,
+      "strong": 882,
+      "weak": 552,
+      "moderate": 74
+    },
+    "blood_service_claim": {
+      "none": 8769,
+      "weak": 346,
+      "strong": 264,
+      "moderate": 95
+    }
+  },
+  "evidence_quotes_checked": 75280,
+  "evidence_quotes_not_verbatim": 0,
+  "directory_links_before": 157,
+  "directory_links_after": 349,
+  "directory_links_by_rule": {
+    "name>=0.85_same_pin": 220,
+    "name>=0.90_same_city": 98,
+    "generic_public_name_same_pin": 31
+  },
+  "directory_links_by_confidence": {
+    "high": 251,
+    "medium": 84,
+    "low": 14
+  },
+  "laqshya_rows": 2027,
+  "laqshya_matches": 105,
+  "laqshya_matched_sites": 55,
+  "laqshya_mot_current_sites": 11,
+  "sites_with_in_house_directory_blood": 349,
+  "dropped_features": [
+    "year_established",
+    "page_last_updated",
+    "n_source_urls"
+  ],
+  "not_precomputed": "all distances (hospital-bank, density, nearest bank): computed from coordinates at query time"
+}

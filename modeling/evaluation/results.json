@@ -1,0 +1,822 @@
+{
+  "n_queries": 1000,
+  "n_evaluable": 1000,
+  "design": "half within ~5 km of a listed hospital, half offset up to ~35 km",
+  "area_mix": {
+    "urban": 541,
+    "rural": 459
+  },
+  "overall": {
+    "v2": {
+      "n": 1000,
+      "appropriate": 0.899,
+      "unsafe": 0.017,
+      "not_a_treatment_site": 0.0,
+      "standalone_blood_bank": 0.0,
+      "verified_blood_in_window": 0.965,
+      "treatment_with_blood_in_window": 0.831,
+      "median_minutes_to_treatment": 45.0,
+      "dominated": 0.354
+    },
+    "v1": {
+      "n": 1000,
+      "appropriate": 0.436,
+      "unsafe": 0.337,
+      "not_a_treatment_site": 0.212,
+      "standalone_blood_bank": 0.176,
+      "verified_blood_in_window": 0.737,
+      "treatment_with_blood_in_window": 0.714,
+      "median_minutes_to_treatment": 44.7,
+      "dominated": 0.56
+    },
+    "nearest_licensed_blood": {
+      "n": 969,
+      "appropriate": 0.37,
+      "unsafe": 0.267,
+      "not_a_treatment_site": 0.0,
+      "standalone_blood_bank": 0.0,
+      "verified_blood_in_window": 0.922,
+      "treatment_with_blood_in_window": 0.69,
+      "median_minutes_to_treatment": 45.0,
+      "dominated": 0.613
+    },
+    "nearest_claiming_all": {
+      "n": 999,
+      "appropriate": 0.401,
+      "unsafe": 0.0,
+      "not_a_treatment_site": 0.0,
+      "standalone_blood_bank": 0.0,
+      "verified_blood_in_window": 0.844,
+      "treatment_with_blood_in_window": 0.811,
+      "median_minutes_to_treatment": 45.5,
+      "dominated": 0.632
+    }
+  },
+  "when_v2_recommends": {
+    "v2": {
+      "n": 806,
+      "appropriate": 0.934,
+      "unsafe": 0.006,
+      "not_a_treatment_site": 0.0,
+      "standalone_blood_bank": 0.0,
+      "verified_blood_in_window": 0.99,
+      "treatment_with_blood_in_window": 0.99,
+      "median_minutes_to_treatment": 39.5,
+      "dominated": 0.337
+    },
+    "v1": {
+      "n": 806,
+      "appropriate": 0.52,
+      "unsafe": 0.241,
+      "not_a_treatment_site": 0.108,
+      "standalone_blood_bank": 0.093,
+      "verified_blood_in_window": 0.87,
+      "treatment_with_blood_in_window": 0.855,
+      "median_minutes_to_treatment": 41.9,
+      "dominated": 0.552
+    },
+    "nearest_licensed_blood": {
+      "n": 785,
+      "appropriate": 0.395,
+      "unsafe": 0.247,
+      "not_a_treatment_site": 0.0,
+      "standalone_blood_bank": 0.0,
+      "verified_blood_in_window": 0.973,
+      "treatment_with_blood_in_window": 0.82,
+      "median_minutes_to_treatment": 45.0,
+      "dominated": 0.569
+    },
+    "nearest_claiming_all": {
+      "n": 806,
+      "appropriate": 0.416,
+      "unsafe": 0.0,
+      "not_a_treatment_site": 0.0,
+      "standalone_blood_bank": 0.0,
+      "verified_blood_in_window": 0.942,
+      "treatment_with_blood_in_window": 0.94,
+      "median_minutes_to_treatment": 41.0,
+      "dominated": 0.636
+    }
+  },
+  "by_scenario": {
+    "pregnancy_bleeding": {
+      "v2": {
+        "n": 250,
+        "appropriate": 0.696,
+        "unsafe": 0.068,
+        "not_a_treatment_site": 0.0,
+        "standalone_blood_bank": 0.0,
+        "verified_blood_in_window": 0.96,
+        "treatment_with_blood_in_window": 0.792,
+        "median_minutes_to_treatment": 37.2,
+        "dominated": 0.352
+      },
+      "v1": {
+        "n": 250,
+        "appropriate": 0.164,
+        "unsafe": 0.596,
+        "not_a_treatment_site": 0.24,
+        "standalone_blood_bank": 0.18,
+        "verified_blood_in_window": 0.704,
+        "treatment_with_blood_in_window": 0.676,
+        "median_minutes_to_treatment": 34.5,
+        "dominated": 0.653
+      },
+      "nearest_licensed_blood": {
+        "n": 246,
+        "appropriate": 0.134,
+        "unsafe": 0.516,
+        "not_a_treatment_site": 0.0,
+        "standalone_blood_bank": 0.0,
+        "verified_blood_in_window": 0.882,
+        "treatment_with_blood_in_window": 0.699,
+        "median_minutes_to_treatment": 36.0,
+        "dominated": 0.659
+      },
+      "nearest_claiming_all": {
+        "n": 249,
+        "appropriate": 0.289,
+        "unsafe": 0.0,
+        "not_a_treatment_site": 0.0,
+        "standalone_blood_bank": 0.0,
+        "verified_blood_in_window": 0.827,
+        "treatment_with_blood_in_window": 0.759,
+        "median_minutes_to_treatment": 37.9,
+        "dominated": 0.586
+      }
+    },
+    "injury_bleeding": {
+      "v2": {
+        "n": 250,
+        "appropriate": 0.932,
+        "unsafe": 0.0,
+        "not_a_treatment_site": 0.0,
+        "standalone_blood_bank": 0.0,
+        "verified_blood_in_window": 0.94,
+        "treatment_with_blood_in_window": 0.756,
+        "median_minutes_to_treatment": 38.9,
+        "dominated": 0.416
+      },
+      "v1": {
+        "n": 250,
+        "appropriate": 0.44,
+        "unsafe": 0.32,
+        "not_a_treatment_site": 0.268,
+        "standalone_blood_bank": 0.232,
+        "verified_blood_in_window": 0.64,
+        "treatment_with_blood_in_window": 0.624,
+        "median_minutes_to_treatment": 36.2,
+        "dominated": 0.574
+      },
+      "nearest_licensed_blood": {
+        "n": 241,
+        "appropriate": 0.369,
+        "unsafe": 0.295,
+        "not_a_treatment_site": 0.0,
+        "standalone_blood_bank": 0.0,
+        "verified_blood_in_window": 0.88,
+        "treatment_with_blood_in_window": 0.581,
+        "median_minutes_to_treatment": 50.8,
+        "dominated": 0.647
+      },
+      "nearest_claiming_all": {
+        "n": 250,
+        "appropriate": 0.44,
+        "unsafe": 0.0,
+        "not_a_treatment_site": 0.0,
+        "standalone_blood_bank": 0.0,
+        "verified_blood_in_window": 0.752,
+        "treatment_with_blood_in_window": 0.72,
+        "median_minutes_to_treatment": 41.0,
+        "dominated": 0.604
+      }
+    },
+    "severe_anemia": {
+      "v2": {
+        "n": 250,
+        "appropriate": 0.996,
+        "unsafe": 0.0,
+        "not_a_treatment_site": 0.0,
+        "standalone_blood_bank": 0.0,
+        "verified_blood_in_window": 0.996,
+        "treatment_with_blood_in_window": 0.992,
+        "median_minutes_to_treatment": 49.0,
+        "dominated": 0.32
+      },
+      "v1": {
+        "n": 250,
+        "appropriate": 0.66,
+        "unsafe": 0.112,
+        "not_a_treatment_site": 0.104,
+        "standalone_blood_bank": 0.084,
+        "verified_blood_in_window": 0.892,
+        "treatment_with_blood_in_window": 0.868,
+        "median_minutes_to_treatment": 47.8,
+        "dominated": 0.482
+      },
+      "nearest_licensed_blood": {
+        "n": 243,
+        "appropriate": 0.576,
+        "unsafe": 0.004,
+        "not_a_treatment_site": 0.0,
+        "standalone_blood_bank": 0.0,
+        "verified_blood_in_window": 1.0,
+        "treatment_with_blood_in_window": 0.815,
+        "median_minutes_to_treatment": 45.0,
+        "dominated": 0.514
+      },
+      "nearest_claiming_all": {
+        "n": 250,
+        "appropriate": 0.408,
+        "unsafe": 0.0,
+        "not_a_treatment_site": 0.0,
+        "standalone_blood_bank": 0.0,
+        "verified_blood_in_window": 0.988,
+        "treatment_with_blood_in_window": 0.988,
+        "median_minutes_to_treatment": 50.5,
+        "dominated": 0.68
+      }
+    },
+    "not_sure": {
+      "v2": {
+        "n": 250,
+        "appropriate": 0.972,
+        "unsafe": 0.0,
+        "not_a_treatment_site": 0.0,
+        "standalone_blood_bank": 0.0,
+        "verified_blood_in_window": 0.964,
+        "treatment_with_blood_in_window": 0.784,
+        "median_minutes_to_treatment": 36.1,
+        "dominated": 0.328
+      },
+      "v1": {
+        "n": 250,
+        "appropriate": 0.48,
+        "unsafe": 0.32,
+        "not_a_treatment_site": 0.236,
+        "standalone_blood_bank": 0.208,
+        "verified_blood_in_window": 0.712,
+        "treatment_with_blood_in_window": 0.688,
+        "median_minutes_to_treatment": 32.5,
+        "dominated": 0.545
+      },
+      "nearest_licensed_blood": {
+        "n": 239,
+        "appropriate": 0.406,
+        "unsafe": 0.251,
+        "not_a_treatment_site": 0.0,
+        "standalone_blood_bank": 0.0,
+        "verified_blood_in_window": 0.925,
+        "treatment_with_blood_in_window": 0.665,
+        "median_minutes_to_treatment": 38.6,
+        "dominated": 0.632
+      },
+      "nearest_claiming_all": {
+        "n": 250,
+        "appropriate": 0.468,
+        "unsafe": 0.0,
+        "not_a_treatment_site": 0.0,
+        "standalone_blood_bank": 0.0,
+        "verified_blood_in_window": 0.808,
+        "treatment_with_blood_in_window": 0.776,
+        "median_minutes_to_treatment": 36.5,
+        "dominated": 0.656
+      }
+    }
+  },
+  "by_area": {
+    "urban": {
+      "v2": {
+        "n": 541,
+        "appropriate": 0.904,
+        "unsafe": 0.017,
+        "not_a_treatment_site": 0.0,
+        "standalone_blood_bank": 0.0,
+        "verified_blood_in_window": 0.983,
+        "treatment_with_blood_in_window": 0.956,
+        "median_minutes_to_treatment": 35.2,
+        "dominated": 0.39
+      },
+      "v1": {
+        "n": 541,
+        "appropriate": 0.527,
+        "unsafe": 0.218,
+        "not_a_treatment_site": 0.079,
+        "standalone_blood_bank": 0.068,
+        "verified_blood_in_window": 0.904,
+        "treatment_with_blood_in_window": 0.869,
+        "median_minutes_to_treatment": 34.5,
+        "dominated": 0.56
+      },
+      "nearest_licensed_blood": {
+        "n": 530,
+        "appropriate": 0.381,
+        "unsafe": 0.253,
+        "not_a_treatment_site": 0.0,
+        "standalone_blood_bank": 0.0,
+        "verified_blood_in_window": 0.966,
+        "treatment_with_blood_in_window": 0.823,
+        "median_minutes_to_treatment": 35.8,
+        "dominated": 0.521
+      },
+      "nearest_claiming_all": {
+        "n": 541,
+        "appropriate": 0.403,
+        "unsafe": 0.0,
+        "not_a_treatment_site": 0.0,
+        "standalone_blood_bank": 0.0,
+        "verified_blood_in_window": 0.946,
+        "treatment_with_blood_in_window": 0.943,
+        "median_minutes_to_treatment": 34.6,
+        "dominated": 0.693
+      }
+    },
+    "rural": {
+      "v2": {
+        "n": 459,
+        "appropriate": 0.893,
+        "unsafe": 0.017,
+        "not_a_treatment_site": 0.0,
+        "standalone_blood_bank": 0.0,
+        "verified_blood_in_window": 0.943,
+        "treatment_with_blood_in_window": 0.684,
+        "median_minutes_to_treatment": 53.3,
+        "dominated": 0.312
+      },
+      "v1": {
+        "n": 459,
+        "appropriate": 0.329,
+        "unsafe": 0.477,
+        "not_a_treatment_site": 0.368,
+        "standalone_blood_bank": 0.303,
+        "verified_blood_in_window": 0.54,
+        "treatment_with_blood_in_window": 0.532,
+        "median_minutes_to_treatment": 48.4,
+        "dominated": 0.559
+      },
+      "nearest_licensed_blood": {
+        "n": 439,
+        "appropriate": 0.358,
+        "unsafe": 0.285,
+        "not_a_treatment_site": 0.0,
+        "standalone_blood_bank": 0.0,
+        "verified_blood_in_window": 0.868,
+        "treatment_with_blood_in_window": 0.531,
+        "median_minutes_to_treatment": 61.7,
+        "dominated": 0.724
+      },
+      "nearest_claiming_all": {
+        "n": 458,
+        "appropriate": 0.4,
+        "unsafe": 0.0,
+        "not_a_treatment_site": 0.0,
+        "standalone_blood_bank": 0.0,
+        "verified_blood_in_window": 0.723,
+        "treatment_with_blood_in_window": 0.655,
+        "median_minutes_to_treatment": 54.8,
+        "dominated": 0.559
+      }
+    }
+  },
+  "abstention": {
+    "abstain_rate": 0.194,
+    "abstained_but_appropriate_option_existed": 0.227,
+    "recommended_and_no_appropriate_option_existed": 0.02,
+    "share_with_any_appropriate_option": 0.834
+  },
+  "abstention_by_area": {
+    "urban": {
+      "abstain_rate": 0.059,
+      "abstained_but_appropriate_option_existed": 0.156,
+      "recommended_and_no_appropriate_option_existed": 0.024,
+      "share_with_any_appropriate_option": 0.928
+    },
+    "rural": {
+      "abstain_rate": 0.353,
+      "abstained_but_appropriate_option_existed": 0.241,
+      "recommended_and_no_appropriate_option_existed": 0.013,
+      "share_with_any_appropriate_option": 0.723
+    }
+  },
+  "stability": {
+    "location_1km_unchanged": 0.975,
+    "speeds_minus_20pct_unchanged": 0.815,
+    "speeds_plus_20pct_unchanged": 0.855,
+    "detour_plus_20pct_unchanged": 0.845
+  },
+  "sensitivity": [
+    {
+      "parameter": "(base)",
+      "value": null,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "window_high_min",
+      "setting": "low",
+      "value": 45.0,
+      "abstain_rate": 0.12,
+      "top_pick_changed": 0.185
+    },
+    {
+      "parameter": "window_high_min",
+      "setting": "high",
+      "value": 75.0,
+      "abstain_rate": 0.085,
+      "top_pick_changed": 0.155
+    },
+    {
+      "parameter": "window_lower_min",
+      "setting": "low",
+      "value": 90.0,
+      "abstain_rate": 0.115,
+      "top_pick_changed": 0.05
+    },
+    {
+      "parameter": "window_lower_min",
+      "setting": "high",
+      "value": 180.0,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.045
+    },
+    {
+      "parameter": "hb_severe_threshold",
+      "setting": "low",
+      "value": 6.0,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "hb_severe_threshold",
+      "setting": "high",
+      "value": 8.0,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "hb_severe_window_factor",
+      "setting": "low",
+      "value": 0.6,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "hb_severe_window_factor",
+      "setting": "high",
+      "value": 0.9,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "road_detour_factor",
+      "setting": "low",
+      "value": 1.2,
+      "abstain_rate": 0.1,
+      "top_pick_changed": 0.045
+    },
+    {
+      "parameter": "road_detour_factor",
+      "setting": "high",
+      "value": 1.6,
+      "abstain_rate": 0.11,
+      "top_pick_changed": 0.17
+    },
+    {
+      "parameter": "speed_urban_kmph",
+      "setting": "low",
+      "value": 15.0,
+      "abstain_rate": 0.115,
+      "top_pick_changed": 0.265
+    },
+    {
+      "parameter": "speed_urban_kmph",
+      "setting": "high",
+      "value": 35.0,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.19
+    },
+    {
+      "parameter": "speed_rural_kmph",
+      "setting": "low",
+      "value": 30.0,
+      "abstain_rate": 0.125,
+      "top_pick_changed": 0.05
+    },
+    {
+      "parameter": "speed_rural_kmph",
+      "setting": "high",
+      "value": 50.0,
+      "abstain_rate": 0.09,
+      "top_pick_changed": 0.03
+    },
+    {
+      "parameter": "travel_time_cv_urban",
+      "setting": "low",
+      "value": 0.15,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.11
+    },
+    {
+      "parameter": "travel_time_cv_urban",
+      "setting": "high",
+      "value": 0.4,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.135
+    },
+    {
+      "parameter": "travel_time_cv_rural",
+      "setting": "low",
+      "value": 0.2,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.02
+    },
+    {
+      "parameter": "travel_time_cv_rural",
+      "setting": "high",
+      "value": 0.5,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.03
+    },
+    {
+      "parameter": "rural_density_threshold",
+      "setting": "low",
+      "value": 3.0,
+      "abstain_rate": 0.11,
+      "top_pick_changed": 0.005
+    },
+    {
+      "parameter": "rural_density_threshold",
+      "setting": "high",
+      "value": 10.0,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.025
+    },
+    {
+      "parameter": "patient_location_error_km",
+      "setting": "low",
+      "value": 0.1,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "patient_location_error_km",
+      "setting": "high",
+      "value": 2.0,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "blood_issue_crossmatched_min",
+      "setting": "low",
+      "value": 30.0,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "blood_issue_crossmatched_min",
+      "setting": "high",
+      "value": 60.0,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.01
+    },
+    {
+      "parameter": "blood_issue_emergency_min",
+      "setting": "low",
+      "value": 10.0,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "blood_issue_emergency_min",
+      "setting": "high",
+      "value": 20.0,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "plasma_thaw_min",
+      "setting": "low",
+      "value": 20.0,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.03
+    },
+    {
+      "parameter": "plasma_thaw_min",
+      "setting": "high",
+      "value": 30.0,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.015
+    },
+    {
+      "parameter": "blood_transport_speed_factor",
+      "setting": "low",
+      "value": 0.8,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "blood_transport_speed_factor",
+      "setting": "high",
+      "value": 1.2,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "p_bank_has_stock",
+      "setting": "low",
+      "value": 0.7,
+      "abstain_rate": 0.115,
+      "top_pick_changed": 0.035
+    },
+    {
+      "parameter": "p_bank_has_stock",
+      "setting": "high",
+      "value": 0.95,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.025
+    },
+    {
+      "parameter": "p_inhouse_stock",
+      "setting": "low",
+      "value": 0.75,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.005
+    },
+    {
+      "parameter": "p_inhouse_stock",
+      "setting": "high",
+      "value": 0.97,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.005
+    },
+    {
+      "parameter": "p_stock_unknown_hours_night",
+      "setting": "low",
+      "value": 0.4,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "p_stock_unknown_hours_night",
+      "setting": "high",
+      "value": 0.8,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "link_trust_high",
+      "setting": "low",
+      "value": 0.9,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "link_trust_high",
+      "setting": "high",
+      "value": 0.99,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "link_trust_medium",
+      "setting": "low",
+      "value": 0.7,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "link_trust_medium",
+      "setting": "high",
+      "value": 0.95,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "link_trust_low",
+      "setting": "low",
+      "value": 0.4,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "link_trust_low",
+      "setting": "high",
+      "value": 0.8,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "p_components_unverified_bank",
+      "setting": "low",
+      "value": 0.3,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.01
+    },
+    {
+      "parameter": "p_components_unverified_bank",
+      "setting": "high",
+      "value": 0.7,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.01
+    },
+    {
+      "parameter": "p_rh_neg_stock_l3",
+      "setting": "low",
+      "value": 0.6,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "p_rh_neg_stock_l3",
+      "setting": "high",
+      "value": 0.9,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "p_rh_neg_stock_l2",
+      "setting": "low",
+      "value": 0.3,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "p_rh_neg_stock_l2",
+      "setting": "high",
+      "value": 0.7,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "laqshya_mot_floor",
+      "setting": "low",
+      "value": 0.8,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "laqshya_mot_floor",
+      "setting": "high",
+      "value": 0.95,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "laqshya_lr_obstetric_floor",
+      "setting": "low",
+      "value": 0.7,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "laqshya_lr_obstetric_floor",
+      "setting": "high",
+      "value": 0.95,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.01
+    },
+    {
+      "parameter": "abstain_threshold",
+      "setting": "low",
+      "value": 0.3,
+      "abstain_rate": 0.065,
+      "top_pick_changed": 0.025
+    },
+    {
+      "parameter": "abstain_threshold",
+      "setting": "high",
+      "value": 0.7,
+      "abstain_rate": 0.17,
+      "top_pick_changed": 0.005
+    },
+    {
+      "parameter": "max_backup_banks",
+      "setting": "low",
+      "value": 3.0,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.04
+    },
+    {
+      "parameter": "max_backup_banks",
+      "setting": "high",
+      "value": 10.0,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.015
+    },
+    {
+      "parameter": "max_search_km",
+      "setting": "low",
+      "value": 100.0,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    },
+    {
+      "parameter": "max_search_km",
+      "setting": "high",
+      "value": 250.0,
+      "abstain_rate": 0.105,
+      "top_pick_changed": 0.0
+    }
+  ],
+  "runtime_seconds": 477.0
+}

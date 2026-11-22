@@ -22,6 +22,32 @@ npm run dev
 
 Open `http://localhost:5173`.
 
+## Model (v2: chance of success)
+
+`POST /recommend` now ranks hospitals by an estimated **chance of success**:
+
+> P(success) = P(capable) × P(right blood products available in time) × P(patient arrives within the clinical window)
+
+- **P(capable)**: a logistic-regression model trained on 240 reviewed labels (`labels/`), using evidence
+  from each facility's own record; raised where LaQshya independently certifies obstetric surgery.
+  Out-of-fold AUC 0.94 vs 0.80 / 0.73 for simple baselines (`modeling/capability/evaluation_report.md`).
+- **P(blood in time)**: the hospital's own blood bank (licensed in the government directory, or only
+  claimed in its listing) plus the nearest licensed banks that stock the scenario's products, with
+  transport and issue time, night-time hours and Rh-negative stock.
+- **P(arrives in time)**: straight-line distance × detour / speed (urban or rural from local density),
+  with a travel-time spread, against the scenario's window (shorter if Hb is known to be low).
+- Every assumption is in `dataset/ref/parameters.csv`; every distance is computed from coordinates
+  at query time. Below 50% the API returns `status: "no_confident_option"` with a message.
+
+Each result keeps the fields the UI already used and adds `p_success`, the three factors, verbatim
+`evidence` quotes for each required capability, `blood_source`, `call_ahead` questions and
+`location_confidence`. Optional request fields: `hb` (g/dL), `rh_negative`, `night`.
+
+Data pipeline: `pre-processing/` (bronze → silver → gold, LaQshya parser). Gold tables are in
+`dataset/gold/`. The previous entropy-TOPSIS API is kept as `modeling/api/app_v1_topsis.py`.
+
+Run the checks: `python3 modeling/self_checks/run_all_checks.py`.
+
 ## Deployment
 
 Deploy the Python API using the included `render.yaml`. Then deploy this repository to Vercel and add:
