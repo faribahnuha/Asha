@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Find a Facility</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0B6E62">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Find Facility">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
   :root{
@@ -361,6 +366,16 @@ document.getElementById("map").addEventListener("click", handleMapClick);
 document.getElementById("randomBtn").addEventListener("click", fetchRandomLocation);
 renderScenarioRow();
 renderMap();
+
+if ("serviceWorker" in navigator){
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("service-worker.js").catch(() => {
+      // Installable-as-app support is a nice-to-have, not required for the
+      // page to work — fail silently rather than surface a console error
+      // to someone just trying to find a facility.
+    });
+  });
+}
 </script>
 </body>
 </html>

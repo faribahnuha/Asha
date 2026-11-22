@@ -1,0 +1,14 @@
+{
+  "name": "Find a Facility",
+  "short_name": "Find Facility",
+  "description": "Blood-transfusion facility recommendations for emergency responders in India",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F6F8F7",
+  "theme_color": "#0B6E62",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
