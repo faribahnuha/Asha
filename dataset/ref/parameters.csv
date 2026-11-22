@@ -28,3 +28,4 @@ laqshya_lr_obstetric_floor,0.85,probability,0.7,0.95,assumption,"Current LaQshya
 abstain_threshold,0.5,probability,0.3,0.7,assumption,"Below this best P(success) the app says 'no confident option' instead of recommending"
 max_backup_banks,5,count,3,10,design_choice,"Nearest qualifying blood banks considered per hospital"
 max_search_km,150,km,100,250,design_choice,"Straight-line search radius around the patient"
+display_probability_cap,0.98,probability,0.95,0.99,design_choice,"No probability is shown above this: an estimate built on assumed parameters and web-scraped evidence never justifies certainty. Ranking and abstention use the uncapped values"
