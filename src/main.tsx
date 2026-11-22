@@ -102,7 +102,17 @@ function Details({facility,scenario,onClose}:{facility:Facility;scenario:Scenari
 }
 function App(){const [language,setLanguage]=useState<Language>('en');const [scenario,setScenario]=useState<Scenario>('pregnancy_bleeding');const [location,setLocation]=useState<Location>({label:'Sanganer, Jaipur, Rajasthan',lat:26.8197,lon:75.7659,resolvedLabel:'Sanganer, Jaipur, Rajasthan'});const [data,setData]=useState<ApiResponse|null>(null);const [selected,setSelected]=useState<Facility|null>(null);const [loading,setLoading]=useState(false);const [error,setError]=useState('');
   async function resolveLocation(){if(location.label.trim()===location.resolvedLabel)return location;const q=encodeURIComponent(location.label.trim());const r=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=in&q=${q}`);if(!r.ok)throw new Error('The location search failed.');const matches=await r.json();if(!matches.length)throw new Error('Location not found. Try adding the district or state.');const resolved={label:matches[0].display_name.split(',').slice(0,3).join(','),lat:Number(matches[0].lat),lon:Number(matches[0].lon),resolvedLabel:matches[0].display_name.split(',').slice(0,3).join(',')};setLocation(resolved);return resolved}
-  async function search(){setLoading(true);setError('');try{const point=await resolveLocation();const r=await fetch(`${API_URL}/recommend`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lat:point.lat,lon:point.lon,scenario})});if(!r.ok)throw new Error((await r.json()).detail||'The model could not return results.');setData(await r.json())}catch(e){setError(e instanceof Error?`${e.message} Check that the model API is running.`:'Could not reach the model API.')}finally{setLoading(false)}}
+  async function search(){setLoading(true);setError('');try{const point=await resolveLocation();const r=await fetch(`${API_URL}/recommend`,{method:'POST',mode:'same-origin',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({lat:point.lat,lon:point.lon,scenario})});if(!r.ok)throw new Error((await r.json()).detail||'The model could not return results.');setData(await r.json())}catch(e){
+    // A bare "TypeError: Failed to fetch" (no HTTP status at all) means the
+    // request never reached the server — a browser extension/privacy
+    // shield blocked it, a network error occurred, or a CSP policy refused
+    // it. That is a different failure than the server responding with an
+    // error, so say so explicitly instead of the misleading generic text.
+    const blockedClientSide = e instanceof TypeError && /fetch/i.test(e.message);
+    setError(blockedClientSide
+      ? 'The request was blocked before it reached the server (often a browser privacy/ad-blocking extension). Try disabling tracker/script blocking for this site, or a different browser, then retry.'
+      : (e instanceof Error ? `${e.message} Check that the model API is running.` : 'Could not reach the model API.'));
+  }finally{setLoading(false)}}
   const t=(key:string)=>copy[language][key]||copy.en[key]||key;
   return <I18n.Provider value={{language,setLanguage,t}}>{data?<Results data={data} scenario={scenario} location={location} onBack={()=>setData(null)} onSelect={setSelected}/>:<Home scenario={scenario} setScenario={setScenario} onSearch={search} loading={loading} error={error} location={location} setLocation={setLocation}/>} {selected&&<Details facility={selected} scenario={scenario} onClose={()=>setSelected(null)}/>}</I18n.Provider>}
 
