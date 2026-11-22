@@ -48,6 +48,22 @@ Type another Indian town or district and confirm the map recenters. The numbered
 
 When testing **Use current location**, allow the location permission prompt. If it was previously denied, re-enable Location for the site in the browser's site settings and reload the page.
 
+## 5. Optional: deploy as a Databricks App
+
+A second deployment of the same frontend + API as a single Databricks App lives in `databricks_app/` (`server.py` mounts the built `dist/` on top of the unchanged `modeling/api/app.py`). Steps:
+
+```bash
+npm install
+VITE_ASHA_API_URL="" npm run build   # relative /recommend calls, same-origin
+databricks apps create asha-care-finder
+databricks workspace mkdirs /Workspace/Users/<you>/apps/asha-care-finder
+databricks workspace import-dir . /Workspace/Users/<you>/apps/asha-care-finder --overwrite
+databricks apps deploy asha-care-finder \
+  --source-code-path /Workspace/Users/<you>/apps/asha-care-finder
+```
+
+**Important limitation of this deployment path**: Databricks Apps has no public/anonymous access mode. Every viewer must have a Databricks account and be explicitly granted `CAN_USE` on the app (`databricks apps set-permissions`), which real ambulance drivers in the field will not have. This path exists to demonstrate Databricks usage (e.g. for a sponsor track); the Vercel deployment above is the one meant for actual field use, since it is a public URL with no login.
+
 ## Important limitations
 
 - The route and travel time are estimates, not live navigation.
