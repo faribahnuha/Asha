@@ -33,6 +33,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 # candidate_pool/ and scoring/ are sibling packages under modeling/, not
@@ -101,6 +102,17 @@ def recommend(
     with_services["drive_min"] = cp.compute_drive_minutes(
         patient_lat, patient_lon, with_services["lat"], with_services["lon"], detour_factor, avg_speed_kmph
     )
+    # A synthetic per-row id, assigned once here before any filtering or
+    # concatenation. ~85% of candidates (directory-sourced blood banks) have
+    # unique_id = NaN, and pandas' isin() treats every NaN as matching every
+    # other NaN — deduplicating by the unique_id column (as this function
+    # used to) silently treats every directory-sourced facility as "the same
+    # one already chosen" once any one of them is selected, skipping
+    # genuinely different, closer candidates during padding. This plain
+    # integer column has no such collision and survives every downstream
+    # filter/sort/concat untouched, unlike the DataFrame index (which
+    # _rank_several's internal concat resets).
+    with_services["_row_id"] = np.arange(len(with_services))
     reachable_pool = cp.filter_within_time_window(with_services, scenario)
 
     if reachable_pool.empty:
@@ -110,7 +122,7 @@ def recommend(
     else:
         ranked, weights = _rank_several(reachable_pool, scenario)
 
-    result = _pad_to_top_n(ranked, with_services)
+    result = _pad_to_top_n(ranked, with_services).drop(columns=["_row_id"])
     assert len(result) <= TOP_N_RESULTS, "recommend() must never return more than TOP_N_RESULTS rows"
     return result, weights
 
@@ -138,8 +150,9 @@ def _pad_to_top_n(ranked: pd.DataFrame, with_services: pd.DataFrame) -> pd.DataF
     if remaining_slots <= 0:
         return ranked
 
-    already_chosen_ids = set(ranked["unique_id"]) if "unique_id" in ranked.columns else set()
-    not_yet_chosen = with_services[~with_services["unique_id"].isin(already_chosen_ids)]
+    assert "_row_id" in with_services.columns, "with_services is missing _row_id"
+    already_chosen_row_ids = set(ranked["_row_id"]) if "_row_id" in ranked.columns else set()
+    not_yet_chosen = with_services[~with_services["_row_id"].isin(already_chosen_row_ids)]
     if not_yet_chosen.empty:
         return ranked  # nothing left anywhere to pad with
 
@@ -303,9 +316,29 @@ def self_check() -> bool:
     )
     check_4 = "needed_services" in several_confirmed_weights and len(several_confirmed_result) == TOP_N_RESULTS
 
-    all_checks_passed = all([check_1, check_2, check_3, check_4])
+    # Regression check: padding must dedupe by a real per-row id, not the
+    # unique_id column. ~85% of real candidates (directory-sourced blood
+    # banks) have unique_id = NaN, and pandas' isin() treats every NaN as
+    # matching every other NaN — a bug once meant padding would wrongly
+    # treat every directory-sourced facility nationwide as "already chosen"
+    # once any one of them was selected, skipping genuinely closer ones.
+    # Two NaN-id candidates within the window (fill 2 slots), a third NaN-id
+    # candidate genuinely closer but just outside it (the correct padding
+    # choice), and a confirmed candidate much farther away (the wrong,
+    # bug-era choice) make this concrete and checkable.
+    nan_id_candidates = pd.DataFrame({
+        "unique_id": [np.nan, np.nan, np.nan, "confirmed_far"],
+        "lat": [19.00, 19.00, 19.00, 19.00],
+        "lon": [73.000, 73.005, 73.286, 74.430],
+        "blood_level": [2, 2, 2, 2],
+    })
+    nan_id_services = pd.DataFrame({"unique_id": ["confirmed_far"], "service": ["icu"]})
+    nan_id_result, _ = recommend(nan_id_candidates, nan_id_services, 19.00, 73.00, "injury_bleeding", 1.3, 35.0)
+    check_5 = len(nan_id_result) == 3 and 73.286 in set(nan_id_result["lon"])  # the correct, closer padding pick
+
+    all_checks_passed = all([check_1, check_2, check_3, check_4, check_5])
     if not all_checks_passed:
-        print("recommend.self_check(): FAILED", [check_1, check_2, check_3, check_4])
+        print("recommend.self_check(): FAILED", [check_1, check_2, check_3, check_4, check_5])
     return all_checks_passed
 
 
