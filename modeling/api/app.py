@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Optional
 
 import pandas as pd
 from fastapi import FastAPI, HTTPException
@@ -40,6 +39,7 @@ for _sibling_dir in ("candidate_pool", "scoring", "recommend", "demo"):
     if _sibling_path not in sys.path:
         sys.path.append(_sibling_path)
 
+import candidate_pool as cp  # noqa: E402
 import recommend as R  # noqa: E402
 import try_it_out as demo  # noqa: E402
 
@@ -82,9 +82,7 @@ class RecommendRequest(BaseModel):
 
 
 class FacilityResult(BaseModel):
-    """One ranked facility in the response, including the "why" behind it —
-    the same detail modeling/demo/generate_dashboard_data.py bakes into the
-    static dashboard, computed live here instead."""
+    """One ranked facility in the response."""
 
     name: str
     city: str
@@ -92,21 +90,13 @@ class FacilityResult(BaseModel):
     lat: float
     lon: float
     drive_min: float
+    distance_km: float
     score: float
     confirmed: bool
-    blood_level: Optional[int]
-    blood_level_description: str
-    services_has: list[str]
-    services_missing: list[str]
-    services_note: str
     note: str
-
-
-class RandomLocationResponse(BaseModel):
-    """Response body for GET /random-location."""
-
-    lat: float
-    lon: float
+    address: str
+    phone: str
+    services: list[str]
 
 
 class RecommendResponse(BaseModel):
@@ -118,19 +108,6 @@ class RecommendResponse(BaseModel):
     weights: dict[str, float]
 
 
-@app.get("/")
-def root() -> dict[str, object]:
-    """There is no page at the bare root path — this exists only so visiting
-    the API's base URL in a browser shows what's actually available instead
-    of looking broken. The real endpoints are /health and /recommend.
-    """
-    return {
-        "service": API_TITLE,
-        "version": API_VERSION,
-        "endpoints": {"health": "/health", "recommend": "POST /recommend", "docs": "/docs"},
-    }
-
-
 @app.get("/health")
 def health_check() -> dict[str, str]:
     """Plain liveness check — confirms the process is up and data loaded,
@@ -138,47 +115,6 @@ def health_check() -> dict[str, str]:
     """
     assert len(BLOOD_POINTS) > 0 and len(FACILITY_SERVICES) > 0, "datasets failed to load at startup"
     return {"status": "ok", "candidates_loaded": str(len(BLOOD_POINTS))}
-
-
-def _build_facility_result(row: pd.Series, scenario_key: str) -> FacilityResult:
-    """Turn one row of recommend()'s result into a FacilityResult, adding
-    the human-readable blood-level description and service breakdown.
-
-    PARAMETERS:
-        row: one row from recommend()'s result DataFrame.
-        scenario_key: passed to demo.describe_services().
-    """
-    is_confirmed = bool(row.get("needed_services_confirmed", False))
-    service_breakdown = demo.describe_services(row["unique_id"], scenario_key, is_confirmed, FACILITY_SERVICES)
-    blood_level = int(row["blood_level"]) if pd.notna(row.get("blood_level")) else None
-
-    return FacilityResult(
-        name=str(row.get("name", row["unique_id"])),
-        city=str(row.get("city", "")) if pd.notna(row.get("city")) else "",
-        state=str(row.get("state_std", "")) if pd.notna(row.get("state_std")) else "",
-        lat=float(row["lat"]),
-        lon=float(row["lon"]),
-        drive_min=round(float(row["drive_min"]), 1),
-        score=round(float(row["score"]), 3),
-        confirmed=is_confirmed,
-        blood_level=blood_level,
-        blood_level_description=demo.BLOOD_LEVEL_DESCRIPTIONS.get(blood_level, "Unknown"),
-        services_has=service_breakdown["has"],
-        services_missing=service_breakdown["missing"],
-        services_note=service_breakdown["note"],
-        note=str(row.get("note", "")),
-    )
-
-
-@app.get("/random-location", response_model=RandomLocationResponse)
-def random_location_endpoint() -> RandomLocationResponse:
-    """Pick a random real facility's coordinates (jittered slightly) to use
-    as a stand-in patient location — never a point that could land in the
-    ocean or across a border. Reuses demo.pick_random_location() exactly as
-    the CLI demo does; no separate logic for the API.
-    """
-    patient_lat, patient_lon = demo.pick_random_location(BLOOD_POINTS, random_seed=None)
-    return RandomLocationResponse(lat=patient_lat, lon=patient_lon)
 
 
 @app.post("/recommend", response_model=RecommendResponse)
@@ -203,7 +139,30 @@ def recommend_endpoint(request: RecommendRequest) -> RecommendResponse:
     )
     assert len(result) >= 1, "recommend() must return at least one row when candidates exist"
 
-    facility_results = [_build_facility_result(row, request.scenario) for _, row in result.iterrows()]
+    facility_results = [
+        FacilityResult(
+            name=str(row.get("name", row["unique_id"])),
+            city=str(row.get("city", "")) if pd.notna(row.get("city")) else "",
+            state=str(row.get("state_std", "")) if pd.notna(row.get("state_std")) else "",
+            lat=float(row["lat"]),
+            lon=float(row["lon"]),
+            drive_min=round(float(row["drive_min"]), 1),
+            distance_km=round(float(row["drive_min"]) * demo.ASSUMED_AVG_SPEED_KMPH / 60.0, 1),
+            score=round(float(row["score"]), 3),
+            confirmed=bool(row.get("needed_services_confirmed", False)),
+            note=str(row.get("note", "")),
+            address=str(row.get("address", "")) if pd.notna(row.get("address")) else "",
+            phone=str(row.get("phone_std", "")) if pd.notna(row.get("phone_std")) else "",
+            services=(
+                sorted(
+                    FACILITY_SERVICES.loc[
+                        FACILITY_SERVICES["unique_id"] == row["unique_id"], "service"
+                    ].dropna().astype(str).unique().tolist()
+                )
+            ),
+        )
+        for _, row in result.iterrows()
+    ]
 
     return RecommendResponse(
         scenario_label=dict(demo.SCENARIO_MENU)[request.scenario],

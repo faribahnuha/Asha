@@ -71,28 +71,6 @@ SCENARIO_MENU: tuple[tuple[str, str], ...] = (
     ("not_sure", "Other blood-related / not sure"),
 )
 
-# Plain-language descriptions for the three blood_level tiers.
-# Source: model-design.md (draft), "Criteria" table. Shared by
-# generate_dashboard_data.py and modeling/api/app.py so both present
-# capability the same way instead of drifting apart.
-BLOOD_LEVEL_DESCRIPTIONS: dict[int, str] = {
-    1: "Has blood on site (components and 24x7 status not confirmed)",
-    2: "Has blood plus components (platelets, plasma)",
-    3: "Has blood, components, and is open 24x7",
-}
-
-# Human-readable labels for the services used in cp.SCENARIO_SERVICE_LISTS.
-SERVICE_LABELS: dict[str, str] = {
-    "c_section": "C-section",
-    "obstetrics": "Obstetric care",
-    "icu": "ICU",
-    "emergency_surgery": "Emergency surgery",
-    "trauma_care": "Trauma care",
-    "general_medicine": "General medicine",
-    "ed_24x7": "24/7 emergency department",
-    "surgery": "Surgery",
-}
-
 # Kilometres per degree of latitude (and, at the equator, of longitude too).
 # Used only to size the pre-filter box below — not a substitute for the
 # haversine math candidate_pool.py already does on the actual candidates.
@@ -132,33 +110,6 @@ def load_datasets() -> tuple[pd.DataFrame, pd.DataFrame]:
     assert len(blood_points) > 0, "blood_points_v2.csv loaded empty"
     assert len(facility_services) > 0, "facility_services_v2.csv loaded empty"
     return blood_points, facility_services
-
-
-def describe_services(unique_id: str, scenario_key: str, is_confirmed: bool, facility_services: pd.DataFrame) -> dict:
-    """Build a human-readable breakdown of which of this scenario's needed
-    services a facility has and lacks. Shared by generate_dashboard_data.py
-    and modeling/api/app.py — the "why" behind a recommendation should look
-    the same whether it's read from the static dashboard or a live API call.
-
-    PARAMETERS:
-        unique_id: the facility's id. May not appear in facility_services.
-        scenario_key: must be a key of cp.SCENARIO_SERVICE_LISTS.
-        is_confirmed: whether this facility has any service data at all.
-        facility_services: the full (unique_id, service) table.
-    """
-    assert scenario_key in cp.SCENARIO_SERVICE_LISTS, f"unknown scenario: {scenario_key}"
-    needed_services = cp.SCENARIO_SERVICE_LISTS[scenario_key]
-
-    if not is_confirmed:
-        return {"has": [], "missing": [], "note": "No service data available for this facility"}
-
-    facility_rows = facility_services[facility_services["unique_id"] == unique_id]
-    present_services = set(facility_rows["service"])
-
-    has = [SERVICE_LABELS.get(service, service) for service in needed_services if service in present_services]
-    missing = [SERVICE_LABELS.get(service, service) for service in needed_services if service not in present_services]
-    assert len(has) + len(missing) == len(needed_services), "every needed service must be has or missing, not both/neither"
-    return {"has": has, "missing": missing, "note": ""}
 
 
 def pick_random_location(blood_points: pd.DataFrame, random_seed: int | None) -> tuple[float, float]:
