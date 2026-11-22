@@ -88,7 +88,7 @@ function Logo() {
   return <main className="phone home" dir={language==='ur'?'rtl':'ltr'}><Logo/><label className="label">{t('language')}</label><div className="select-wrap"><select className="select" value={language} onChange={e=>setLanguage(e.target.value as Language)}>{(Object.keys(languageNames) as Language[]).map(l=><option value={l} key={l}>{languageNames[l]}</option>)}</select><ChevronDown size={17}/></div>
     <section className="location-section"><h2><b>01</b>{t('where')}</h2><div className="location"><MapPin size={22}/><input aria-label={t('where')} value={location.label} onChange={e=>setLocation({...location,label:e.target.value})} placeholder={t('locationPlaceholder')} autoComplete="off"/></div>{(suggestions.length>0||suggesting)&&<div className="suggestions" role="listbox">{suggesting&&suggestions.length===0?<span className="suggesting">Searching locations…</span>:suggestions.map((p,i)=><button type="button" key={`${p.lat}-${p.lon}-${i}`} onClick={()=>choosePlace(p)}><MapPin size={16}/><span>{p.display_name}</span></button>)}</div>}<button className="text-button" onClick={locate}><LocateFixed size={18}/>{t('useLocation')}</button></section>
     <section><h2><b>02</b>{t('care')}</h2><div className="choices">{scenarios.map(s=><button key={s.id} className={scenario===s.id?'choice active':'choice'} onClick={()=>setScenario(s.id)}><i/><span><strong>{t(s.id==='pregnancy_bleeding'?'pregnancy':s.id==='injury_bleeding'?'injury':'anemia')}</strong><small>{t(s.id==='pregnancy_bleeding'?'pregnancySub':s.id==='injury_bleeding'?'injurySub':'anemiaSub')}</small></span></button>)}</div></section>
-    <div className="bottom"><button className="primary" onClick={onSearch} disabled={loading}>{t(loading?'finding':'find')}<ArrowRight size={22}/></button>{error&&<p className="error">{error}</p>}<small>{t('danger')}</small></div>
+    <div className="bottom"><button className="primary" onClick={onSearch} disabled={loading}>{t(loading?'finding':'find')}<ArrowRight size={22}/></button>{error&&(error.startsWith('RELOAD:')?<p className="error">{error.slice(7)} <button type="button" className="text-button" onClick={()=>window.location.reload()}>Reload now</button></p>:<p className="error">{error}</p>)}<small>{t('danger')}</small></div>
   </main>
 }
 function FitMap({location,results}:{location:Location;results:Facility[]}){const map=useMap();React.useEffect(()=>{const points:[[number,number],...[number,number][]]=[[location.lat,location.lon],...results.map(f=>[f.lat,f.lon] as [number,number])];map.fitBounds(points,{padding:[32,32],maxZoom:12})},[map,location,results]);return null}
@@ -110,7 +110,7 @@ function App(){const [language,setLanguage]=useState<Language>('en');const [scen
     // error, so say so explicitly instead of the misleading generic text.
     const blockedClientSide = e instanceof TypeError && /fetch/i.test(e.message);
     setError(blockedClientSide
-      ? 'The request was blocked before it reached the server (often a browser privacy/ad-blocking extension). Try disabling tracker/script blocking for this site, or a different browser, then retry.'
+      ? 'RELOAD:Your session needs refreshing (or a browser privacy/extension blocked the request). Reload the page and try again.'
       : (e instanceof Error ? `${e.message} Check that the model API is running.` : 'Could not reach the model API.'));
   }finally{setLoading(false)}}
   const t=(key:string)=>copy[language][key]||copy.en[key]||key;
