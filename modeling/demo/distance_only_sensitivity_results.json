@@ -1,0 +1,49 @@
+{
+  "random_seed": 7,
+  "n_per_scenario": 60,
+  "by_scenario": [
+    {
+      "scenario": "injury_bleeding",
+      "n": 60,
+      "pct_top_pick_changed": 63.3,
+      "avg_overlap": 1.75
+    },
+    {
+      "scenario": "not_sure",
+      "n": 60,
+      "pct_top_pick_changed": 48.3,
+      "avg_overlap": 1.63
+    },
+    {
+      "scenario": "pregnancy_bleeding",
+      "n": 60,
+      "pct_top_pick_changed": 46.7,
+      "avg_overlap": 1.8
+    },
+    {
+      "scenario": "severe_anemia",
+      "n": 60,
+      "pct_top_pick_changed": 58.3,
+      "avg_overlap": 1.35
+    }
+  ],
+  "by_confirmed_tier": [
+    {
+      "confirmed_tier_used": false,
+      "n": 79,
+      "pct_top_pick_changed": 12.7,
+      "avg_overlap": 2.42
+    },
+    {
+      "confirmed_tier_used": true,
+      "n": 161,
+      "pct_top_pick_changed": 74.5,
+      "avg_overlap": 1.25
+    }
+  ],
+  "overall": {
+    "n": 240,
+    "pct_top_pick_changed": 54.2,
+    "avg_overlap": 1.63
+  }
+}
