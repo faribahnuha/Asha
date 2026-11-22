@@ -29,6 +29,7 @@ from pathlib import Path
 
 import pandas as pd
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -57,6 +58,19 @@ FACILITY_SERVICES: pd.DataFrame
 BLOOD_POINTS, FACILITY_SERVICES = demo.load_datasets()
 
 app = FastAPI(title=API_TITLE, version=API_VERSION)
+
+# A frontend hosted on a different domain (e.g. a Vercel-hosted UI calling
+# this API on Render) is a cross-origin request by definition — without
+# this, the browser blocks it silently and it looks like the API is broken
+# when it isn't. "*" is deliberately permissive for a public, read-only,
+# no-auth recommendation endpoint with no patient data stored; narrow this
+# to specific origins if that stops being true.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
 
 
 class RecommendRequest(BaseModel):
