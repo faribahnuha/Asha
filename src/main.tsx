@@ -34,8 +34,44 @@ const scenarios: {id:Scenario; title:string; sub:string}[] = [
 const scenarioTitle = (id:Scenario) => scenarios.find(s => s.id === id)?.title || '';
 const serviceNames: Record<string,string> = { icu:'ICU', nicu:'NICU', c_section:'C-section / obstetric surgery', obstetrics:'Obstetrics / maternity care', emergency_surgery:'Emergency surgery', trauma_care:'Surgery / trauma care', surgery:'Surgery', general_medicine:'General medicine', ed_24x7:'24/7 emergency assessment', transfusion:'Blood transfusion', blood_bank:'Blood bank support', ct_scan:'CT scan', mri:'MRI' };
 
-function Logo(){return <div className="brand"><span className="drop"><Cross size={18}/></span><span>Asha</span></div>}
-function Home({scenario,setScenario,onSearch,loading,error,location,setLocation}:{scenario:Scenario;setScenario:(s:Scenario)=>void;onSearch:()=>void;loading:boolean;error:string;location:Location;setLocation:(l:Location)=>void}){
+function Logo() {
+  return (
+    <div className="brand">
+      <svg
+        className="drop-logo"
+        viewBox="0 0 100 100"
+        aria-hidden="true"
+      >
+        {/* Upright blood-drop shape */}
+        <path
+          fill="#b54450"
+          d="
+            M50 2
+            C45 17 32 36 21 51
+            C12 64 10 74 13 83
+            C18 96 32 100 50 100
+            C68 100 82 96 87 83
+            C90 74 88 64 79 51
+            C68 36 55 17 50 2
+            Z
+          "
+        />
+
+        {/* Medical cross */}
+        <path
+          d="M50 47V75M36 61H64"
+          fill="none"
+          stroke="white"
+          strokeWidth="9"
+          strokeLinecap="round"
+        />
+      </svg>
+
+      <span>Asha</span>
+      <small>UI DEMO</small>
+    </div>
+  );
+}function Home({scenario,setScenario,onSearch,loading,error,location,setLocation}:{scenario:Scenario;setScenario:(s:Scenario)=>void;onSearch:()=>void;loading:boolean;error:string;location:Location;setLocation:(l:Location)=>void}){
   const {language,setLanguage,t}=useI18n();
   const [suggestions,setSuggestions]=useState<PlaceSuggestion[]>([]);
   const [suggesting,setSuggesting]=useState(false);
