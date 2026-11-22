@@ -1,0 +1,340 @@
+# Model Design: Recommending a Facility for a Blood Transfusion
+
+How the tool chooses the best facility for a patient who needs blood, given the patient's location and situation. It covers the model, why we chose it, its weaknesses, and how to build and test it on Databricks Free Edition in about three hours.
+
+## Contents
+
+- [Summary](#summary)
+- [Inputs](#inputs)
+- [How the model works](#how-the-model-works)
+- [Flowchart](#flowchart)
+- [Criteria](#criteria)
+- [Time windows](#time-windows)
+- [Code](#code)
+- [Why this model](#why-this-model)
+- [Alternatives considered](#alternatives-considered)
+- [Weaknesses and mitigations](#weaknesses-and-mitigations)
+- [Testing without ground truth](#testing-without-ground-truth)
+- [Databricks implementation](#databricks-implementation)
+- [Three-hour build plan](#three-hour-build-plan)
+- [Open decisions](#open-decisions)
+- [Sources](#sources)
+
+---
+
+## Summary
+
+- **Model:** an entropy-weighted TOPSIS multi-criteria decision model, with weights adjusted for patient severity and clinically based time windows.
+- **What it does:** ranks the facilities that can give blood and are reachable in time, on drive time, blood capability and the services the patient's situation needs, then returns the top 3 with reasons. Capability data is missing for most candidates, so facilities with confirmed service data are ranked separately from — and always ahead of — facilities with no service data at all; the latter are only used as a fallback, ranked on drive time and blood level alone, never on a guessed services number (see [Unknown vs. confirmed-absent](#criteria)).
+- **Why:** there is no record of which facility was the "right" choice for past patients, so no model can learn from examples; and nobody on the team can justify hand-picked weights. Entropy weighting derives the weights from the data; severity adjusts them; TOPSIS turns them into one explainable score.
+
+## Inputs
+
+**From the responder:**
+
+| Input | Values |
+|---|---|
+| Patient location | Latitude and longitude |
+| Scenario | Pregnant or just gave birth, bleeding · Accident or injury, bleeding · Severe weakness or anemia, no injury · Not sure / other |
+
+The responder does not judge severity. Each scenario has a fixed urgency (see [Time windows](#time-windows)); every bleeding case and "not sure" is treated as high urgency, because under-triage costs more than over-triage.
+
+**From the data:**
+
+| Source | Used for | Coverage caveat |
+|---|---|---|
+| Blood Bank Directory (2,823 licensed blood banks) | Location, blood components available, 24x7 service | Components/24x7 are blank for a meaningful share of rows — blank means unrecorded, not absent (see [Unknown vs. confirmed-absent](#criteria)) |
+| VF facilities (10,000, cleaned and verified) | Location, facilities with a blood bank, services (C-section, surgery, trauma care, ICU, and so on) | Only ~475 of the ~3,270 candidates in the final pool are VF-linked with service rows; the rest have no service data to draw on at all |
+
+Not "assumed cleaned and correct" — verified against the actual `blood_points_v2.csv` /
+`facility_services_v2.csv` files, both known to be extracted from web text with real coverage
+gaps, per the project's own data caveats.
+
+## How the model works
+
+1. **Set urgency and time window** from the scenario: high urgency 60 minutes, lower urgency 120 minutes.
+2. **Build the candidate pool:** every place that can give blood (directory blood banks plus VF facilities with a blood bank, merged where they are the same place), with an estimated drive time from the patient.
+3. **Keep candidates within the time window.**
+   - **None:** show the 3 closest, with a warning that none is reachable in time.
+   - **One:** recommend it.
+   - **Several:** split into two tiers before scoring anything — see step 4.
+4. **Split into a confirmed tier and an unconfirmed tier.** Confirmed = the facility has actual service data (`needed_services_confirmed`). Unconfirmed = no service record exists for it at all (true for most directory-listed blood banks).
+   - **At least one confirmed candidate reachable:** rank *only the confirmed tier*, on all three criteria (drive time, blood level, needed services) — steps 5 to 7 below.
+   - **No confirmed candidate reachable** (every reachable facility is unconfirmed): rank the unconfirmed tier instead, on **drive time and blood level only** — `needed_services` is left out of the math entirely rather than guessed at. Every result from this tier is flagged "capability not confirmed — call ahead."
+5. **Entropy weights:** each criterion's weight comes from how much it varies among this tier's candidates. A criterion that is the same for every candidate cannot separate them and gets almost no weight; one that varies a lot gets more.
+6. **Severity boost:** multiply the weight of the criterion that matters most at this severity (high urgency: drive time × 2; lower urgency: needed services × 2 — only applies when ranking the confirmed tier, since the unconfirmed tier doesn't use that criterion at all), then rescale the weights to sum to 1.
+7. **TOPSIS score:** each candidate's closeness to an ideal facility and distance from the worst, as a score from 0 to 1 (over whichever criteria that tier uses).
+8. **Output:** the top 3, each with drive time, score, the weights used, and any gaps (for example "no C-section found here; may need transfer") — plus the unconfirmed-tier flag whenever the recommendation came from step 4's fallback.
+
+This reproduces the behaviour the team wanted without hand-set weights:
+
+- **Rural:** few options, with very different drive times. Drive time varies most, so it gets the most weight and the nearest reachable option wins.
+- **City:** many options at similar drive times. Drive time barely varies, so blood level and services decide.
+
+## Flowchart
+
+```mermaid
+flowchart TD
+    A[Patient location + scenario] --> B[Set urgency and time window<br/>high 60 min, lower 120 min]
+    B --> C[Candidates with blood<br/>drive time from coordinates]
+    C --> D{How many within<br/>the time window?}
+    D -- None --> E[Show 3 closest<br/>with a warning]
+    D -- One --> F[Recommend it]
+    D -- Several --> G{Any confirmed<br/>candidate reachable?}
+    G -- Yes --> H1[Rank confirmed tier<br/>drive time, blood level, needed services]
+    G -- No --> H2[Rank unconfirmed tier<br/>drive time, blood level only<br/>flag: capability not confirmed]
+    H1 --> I[Entropy weights<br/>more spread, more weight]
+    H2 --> I
+    I --> J[Severity boost<br/>high: drive time x2<br/>lower: needed services x2 if used in this tier]
+    J --> K[TOPSIS score 0 to 1]
+    K --> L[Top 3 with reasons]
+    E --> L
+    F --> L
+```
+
+## Criteria
+
+| Criterion | Direction | How it is computed |
+|---|---|---|
+| **Drive time** (minutes) | Lower is better | Straight-line distance × detour factor ÷ average speed, with separate factors for urban and rural areas (see below) |
+| **Blood level** | Higher is better | 1 = has blood; 2 = has blood and blood components (platelets, plasma); 3 = blood, components and open 24x7. From the Blood Bank Directory; VF-only blood banks count as 1 unless the data shows more. |
+| **Needed services** | Higher is better | Number of the scenario's services the facility is *confirmed* to offer (table below) — see "Unknown vs. confirmed-absent" |
+
+The three blood fields are merged into one **blood level** on purpose. They come from the same source and usually move together; scored separately, entropy weighting would count blood quality three times.
+
+"Has a blood bank" is not a criterion: only places with blood enter the candidate pool, because the patient needs a transfusion.
+
+### Unknown vs. confirmed-absent
+
+Neither criterion above has full coverage, and a missing value does not mean "no." Two different things currently get mixed together wherever a service or capability field is blank, and the model has to tell them apart rather than treating both as "doesn't have it":
+
+- **Confirmed-absent:** the facility was looked at and the service genuinely isn't there.
+- **Unknown:** the facility was never looked at for this field, so there is no evidence either way.
+
+This matters because unknown is the common case, not the exception. Service data (C-section, ICU, trauma care, etc.) only exists for facilities that came from the VF-facility extraction — about 475 of the roughly 3,270 candidates in the pool (roughly 15%). The other ~85%, mostly directory-listed blood banks, have no service rows at all; nobody checked, they weren't skipped for lacking anything. The same split applies inside blood level: `has_components` and `is_24x7` are blank for a meaningful share of directory-sourced rows — again "not recorded," not "confirmed no."
+
+**What this means for scoring:** a facility with no service data must not score identically to a facility that was checked and found lacking, and — rather than inventing a stand-in number for "no evidence" — `needed_services` is simply never put into the same scoring math as a guessed value. Every reachable candidate carries a `needed_services_confirmed` flag (service rows exist for this facility) or not. Before any scoring happens, the reachable pool is split into two tiers:
+
+- **Confirmed tier** (at least one reachable facility has real service data): ranked on all three criteria — drive time, blood level, needed services — exactly as before. Unconfirmed facilities are not part of this ranking at all.
+- **Unconfirmed tier** (no reachable facility has service data): ranked on **drive time and blood level only**. `needed_services` is dropped from the criteria list for this ranking, not filled in with a guess. Every result is flagged "capability not confirmed — call ahead."
+
+A confirmed facility is always preferred over an unconfirmed one when both are reachable — the unconfirmed tier is a fallback, used only when nothing confirmed is in range. No number is ever invented to represent "we don't know"; the criterion is left out of the math for that tier instead. The one tradeoff this creates: the lower-urgency severity boost (`needed_services × 2`) has nothing to act on when ranking falls into the unconfirmed tier, so that tier is ranked on drive time and blood level's entropy weights alone, with no severity adjustment — expected, and flagged as an open question below.
+
+Blood level does not get this same tiering treatment: a blank `has_components`/`is_24x7` still defaults to the lowest blood-level tier, because nearly every candidate has *some* value for blood level (it's rarely a total data gap the way service data is). That remaining imprecision is tracked as a separate, smaller weakness — see [Weaknesses and mitigations](#weaknesses-and-mitigations) — rather than folded into this fix.
+
+**Services counted for each scenario:**
+
+| Scenario | Services counted |
+|---|---|
+| Pregnant or just gave birth, bleeding | C-section, obstetrics, ICU |
+| Accident or injury, bleeding | Emergency surgery, trauma care, ICU |
+| Severe weakness or anemia, no injury | General medicine, ICU |
+| Not sure / other | 24x7 emergency department, surgery, ICU |
+
+**Drive time.** We use straight-line distance because road maps are incomplete in rural India and Databricks Free Edition restricts outbound internet access, which rules out live routing. The detour factor and average speed are measured, not guessed: route a sample of random trips in urban and rural test places with OSMnx (outside Databricks), and compare road travel time with straight-line distance. The typical error of these estimates also sets how much drive-time difference should count as meaningful.
+
+## Time windows
+
+| Scenario | Urgency | Window | Basis |
+|---|---|---|---|
+| Pregnant or just gave birth, bleeding | High | 60 min | The most severe postpartum bleeding and maternal deaths tend to occur in the first one to two hours after delivery; massive haemorrhage usually occurs within the first hour. |
+| Accident or injury, bleeding | High | 60 min | The "golden hour" is the standard convention, though its evidence is mixed. A large French cohort found the odds of death rose by 8% for every 10 extra minutes of prehospital time. |
+| Not sure / other | High | 60 min | Assume the worst. |
+| Severe weakness or anemia, no injury | Lower | 120 min | **Team assumption.** Not a minutes-matter emergency; no clinical time limit was found. |
+
+## Code
+
+Runs in a Databricks notebook with numpy and pandas only. `candidates` has one row per place with
+blood near the patient, with the columns in `CRITERIA`, plus `needed_services_confirmed` —
+`True` only when the facility actually has service data (VF-linked with rows in
+`facility_services_v2.csv`), `False` when no service record exists for it at all (true for most
+directory-listed blood banks). This flag decides which of two scoring paths a candidate takes —
+see [Unknown vs. confirmed-absent](#criteria): facilities with confirmed data are ranked on all
+three criteria; facilities with none are only ever ranked as a fallback, on drive time and blood
+level alone. No criterion is ever filled in with a guessed value.
+
+```python
+import numpy as np
+import pandas as pd
+
+CRITERIA = ["drive_min", "blood_level", "needed_services"]
+IS_COST = np.array([True, False, False])  # True: lower is better
+
+# Used only for the fallback tier, when no reachable candidate has confirmed service data.
+FALLBACK_CRITERIA = ["drive_min", "blood_level"]
+FALLBACK_IS_COST = np.array([True, False])
+
+SCENARIO_URGENCY = {
+    "pregnancy_bleeding": "high",
+    "injury_bleeding": "high",
+    "not_sure": "high",
+    "severe_anemia": "lower",
+}
+TIME_WINDOW_MIN = {"high": 60, "lower": 120}
+# Which criterion each severity boosts, and by how much (a stated choice; tested at 1.5x and 3x).
+# Has no effect in the fallback tier, since "needed_services" isn't one of its criteria there.
+SEVERITY_BOOST = {"high": ("drive_min", 2.0), "lower": ("needed_services", 2.0)}
+
+
+def entropy_weights(X: np.ndarray) -> np.ndarray:
+    """Weight each criterion by how much it varies across the candidates (more spread = more weight)."""
+    m = X.shape[0]
+    col_sum = X.sum(axis=0)
+    P = np.divide(X, col_sum, out=np.zeros_like(X, dtype=float), where=col_sum > 0)
+    plogp = np.where(P > 0, P * np.log(np.where(P > 0, P, 1.0)), 0.0)
+    entropy = -plogp.sum(axis=0) / np.log(m)
+    entropy[col_sum == 0] = 1.0  # criterion absent at every candidate: carries no information
+    spread = 1.0 - entropy
+    if spread.sum() == 0:
+        return np.full(X.shape[1], 1.0 / X.shape[1])
+    return spread / spread.sum()
+
+
+def severity_adjusted_weights(entropy_w: np.ndarray, urgency: str, criteria: list[str]) -> np.ndarray:
+    """Boost the criterion that matters most at this severity, then rescale to sum to 1.
+    If that criterion isn't in play for this tier (the fallback tier has no needed_services),
+    no boost is applied — plain entropy weights are used instead."""
+    criterion, factor = SEVERITY_BOOST[urgency]
+    w = entropy_w.copy()
+    if criterion in criteria:
+        w[criteria.index(criterion)] *= factor
+    return w / w.sum()
+
+
+def topsis(X: np.ndarray, weights: np.ndarray, is_cost: np.ndarray) -> np.ndarray:
+    """Score 0-1: closeness to the ideal facility and distance from the worst one."""
+    norm = np.sqrt((X ** 2).sum(axis=0))
+    V = np.divide(X, norm, out=np.zeros_like(X, dtype=float), where=norm > 0) * weights
+    best = np.where(is_cost, V.min(axis=0), V.max(axis=0))
+    worst = np.where(is_cost, V.max(axis=0), V.min(axis=0))
+    d_best = np.sqrt(((V - best) ** 2).sum(axis=1))
+    d_worst = np.sqrt(((V - worst) ** 2).sum(axis=1))
+    return d_worst / (d_best + d_worst + 1e-12)
+
+
+def recommend(candidates: pd.DataFrame, scenario: str, top_n: int = 3) -> tuple[pd.DataFrame, dict]:
+    """Return the top facilities for one patient, plus the weights used (empty when no ranking was needed)."""
+    urgency = SCENARIO_URGENCY[scenario]
+    pool = candidates[candidates["drive_min"] <= TIME_WINDOW_MIN[urgency]]
+
+    if pool.empty:
+        closest = candidates.nsmallest(top_n, "drive_min")
+        return closest.assign(note="None reachable within the time window; closest shown"), {}
+
+    confirmed_pool = pool[pool["needed_services_confirmed"]]
+    if not confirmed_pool.empty:
+        tier_pool, criteria, is_cost, tier_note = confirmed_pool, CRITERIA, IS_COST, ""
+    else:
+        # Nothing reachable has service data: fall back to the whole pool, ranked without
+        # needed_services — never scored on a guessed value for it.
+        tier_pool, criteria, is_cost, tier_note = (
+            pool, FALLBACK_CRITERIA, FALLBACK_IS_COST,
+            "No reachable facility has confirmed service data; ranked on drive time and "
+            "blood level only — capability not confirmed, call ahead",
+        )
+
+    if len(tier_pool) == 1:
+        return tier_pool.assign(score=1.0, note=tier_note or "Only option within the time window"), {}
+
+    X = tier_pool[criteria].to_numpy(dtype=float)
+    weights = severity_adjusted_weights(entropy_weights(X), urgency, criteria)
+    ranked = tier_pool.assign(score=topsis(X, weights, is_cost), note=tier_note).nlargest(top_n, "score")
+    return ranked, dict(zip(criteria, weights.round(3)))
+```
+
+**Worked example (weights).** Three hospitals 15 to 25 minutes away. Entropy gives drive time 20%, blood level 30%, services 50%.
+
+| Urgency | Drive time | Blood level | Services | Effect |
+|---|---:|---:|---:|---|
+| Entropy only | 20% | 30% | 50% | |
+| High (drive time × 2) | 33% | 25% | 42% | The nearest hospital is more likely to win |
+| Lower (services × 2) | 13% | 20% | 67% | The best-equipped hospital wins even if farther |
+
+## Why this model
+
+| Constraint | Rules out | How entropy-weighted TOPSIS meets it |
+|---|---|---|
+| No records of the "right" facility for past patients | Any machine-learning ranking model | Needs no training data |
+| No clinical expert to set weights | Weighted sum, AHP | Weights come from the data, adjusted by one stated severity factor |
+| Every recommendation must explain itself | Black-box models | Each score breaks down into weights × criteria, and the weights are shown |
+| Cities and rural areas behave differently | One fixed set of weights | Weights are recomputed for each patient's own candidates |
+| About 3 hours on Databricks Free Edition | Heavy optimization or live routing | About 50 lines of numpy |
+
+TOPSIS is a recognised multi-criteria decision method, commonly used to rank hospitals and facility sites.
+
+## Alternatives considered
+
+| Model | Why not chosen |
+|---|---|
+| **CRITIC-weighted TOPSIS** | Its weights also account for correlated criteria, which would avoid double counting automatically. But it needs a reliable correlation estimate, and with only 3 to 10 candidates per patient that is noisy. Merging the blood fields into one blood level does the same job more reliably. A reasonable alternative to mention. |
+| **VIKOR** | Similar to TOPSIS; adds a "majority versus regret" setting that would need its own justification. |
+| **PROMETHEE** | Needs a hand-set preference function for every criterion. |
+| **AHP** | Needs a clinician to compare every pair of criteria. |
+| **Weighted sum** | Requires hand-picked weights. |
+| **Machine-learning ranking** (for example a LightGBM ranker) | Needs examples of correct choices, which do not exist. |
+| **Probability of care within the time window** | Elegant, but needs probabilities that the data does not contain; they would have to be assumed. |
+
+## Weaknesses and mitigations
+
+| Weakness | Mitigation |
+|---|---|
+| Entropy measures how much a criterion **varies**, not how much it **matters clinically** | Urgency acts outside the weights through the time window, so a distant facility cannot win an urgent case; only scenario-relevant services are counted |
+| A criterion where some candidates score 0 (for example no needed services at all) gets a very large entropy weight, so it can outweigh drive time even in urgent cases | Only applies to *confirmed* 0s now (`needed_services_confirmed=True`, genuinely lacking). Still expected and usually sensible in that case; check it in the test cases, and raise the high-urgency boost or count services on a 1-to-4 scale if it dominates too often |
+| ~85% of candidates (directory-listed blood banks with no VF service record) have no confirmed data for `needed_services` — treating that as confirmed-absent would silently rank most of the pool as if they had no capability at all | Split into a confirmed tier and an unconfirmed-fallback tier before scoring (see [Unknown vs. confirmed-absent](#criteria)). A confirmed candidate always wins over an unconfirmed one when both are reachable; the fallback tier drops `needed_services` from the math entirely rather than guessing at it, and is used only when nothing confirmed is reachable |
+| In the fallback tier, the lower-urgency severity boost (`needed_services × 2`) has nothing to act on, so an urgent-for-services anemia case ranked in that tier gets no severity adjustment at all — plain entropy weights over drive time and blood level only | Expected given the data gap, but untested against real cases — check it in the sensitivity pass; if it matters clinically, the team would need to pick a different criterion to boost in the fallback tier (e.g. blood level) rather than leaving severity unaddressed there |
+| The severity boost (× 2) is a judgment call | State it openly; test at × 1.5, × 2 and × 3 and report how often the top 3 changes |
+| Adding or removing one candidate can reorder the others (a known TOPSIS property) | Fix the pool by the time window before scoring; check stability on the test cases |
+| Drive times are estimates from straight-line distance | Factors measured from routed sample trips; times shown as estimates; small errors rarely change rankings |
+| The Blood Bank Directory is a 2018 snapshot | Replace it with the current download from data.gov.in when available; link each recommended blood bank to e-RaktKosh for live stock |
+| Only three criteria | Deliberate: few, meaningful criteria keep entropy weighting stable and the explanation short |
+
+## Testing without ground truth
+
+1. **Hand-written test cases (about 10).** Situations with an obvious right answer, for example:
+   - one blood bank within 100 km → choose it
+   - two equally close, only one does C-sections, pregnant patient → choose that one
+   - none within the window → three closest with a warning
+   - city with many options, anemia → best-equipped wins
+   - one confirmed facility (even with only 1 of 3 needed services) and one unconfirmed (directory-only) facility, both reachable → the confirmed one should always be preferred; the unconfirmed one should not even enter the ranking while a confirmed candidate exists
+   - every reachable candidate is unconfirmed (no VF service record for any of them) → check the fallback tier ranks sensibly on drive time and blood level alone, and that every result is labeled "not confirmed — call ahead"
+   - lower-urgency (anemia) case where only the fallback tier is reachable → confirm the severity boost has no effect here (it boosts `needed_services`, which isn't a fallback-tier criterion) and that this is the expected, documented behavior, not a bug
+2. **Sensitivity checks.** Rerun the test cases with windows of 45, 60 and 75 minutes and boosts of × 1.5, × 2 and × 3. Report how often the top pick changes.
+3. **Blind comparison (if time allows).** For 30 to 50 random patient locations, show the shortlists to two or three people who have not seen the model's choice. Measure how often the model agrees with them, and how often they agree with each other.
+
+## Databricks implementation
+
+| Piece | Databricks feature |
+|---|---|
+| Data | Delta tables in Unity Catalog: `blood_points` (candidates, with blood level) and `facility_services` (one row per facility and service) |
+| Nearby search | H3 geospatial functions in Databricks SQL (`h3_longlatash3`, `h3_kring`) to find candidates near the patient before computing drive times. Check they run on the Free Edition SQL warehouse first; if not, plain distance maths over about 13,000 rows is fast enough. |
+| Model | The `recommend` function in a notebook |
+| Testing | MLflow runs logging each test case and sensitivity setting with its top 3 |
+| User interface | An AI/BI dashboard with inputs (location, scenario) and a map; optionally a Genie space for plain-language questions |
+
+## Three-hour build plan
+
+| Time | Task |
+|---|---|
+| 0:00–0:30 | Route sample trips with OSMnx (outside Databricks); measure detour factors and average speeds for urban and rural areas |
+| 0:30–1:15 | Load the cleaned data into Delta tables; build the candidate pool with blood levels and the services table |
+| 1:15–2:15 | Implement drive times and `recommend`; check it on a few locations |
+| 2:15–2:45 | Test cases and sensitivity checks, logged in MLflow |
+| 2:45–3:00 | Dashboard with inputs and a map |
+
+## Open decisions
+
+- The severity boost factor (× 2 by default; confirm with the sensitivity checks).
+- The anemia time window (120 minutes is a team assumption).
+- Whether a single "Unconscious or confused?" checkbox should raise urgency in the anemia scenario.
+- Whether to add a Genie space on top of the dashboard.
+- Whether the fallback tier (no confirmed candidate reachable) should boost a different criterion for severity instead of leaving the boost unused — currently it does nothing there, since `needed_services` isn't one of the fallback tier's criteria.
+- Whether blood level's own smaller unknown-vs-default gap (blank `has_components`/`is_24x7` defaulting to tier 1) should eventually get the same confirmed/unconfirmed tiering as `needed_services`, or whether that's unnecessary since blood level is rarely a total data gap.
+
+## Sources
+
+- University of Oxford, Nuffield Department of Women's and Reproductive Health: critical window for postpartum haemorrhage care — https://www.wrh.ox.ac.uk/news/early-diagnosis-saves-lives-new-study-highlights-critical-window-for-postpartum-haemorrhage-care
+- When are postpartum haemorrhages diagnosed? Nested observational study within the E-MOTIVE trial — https://www.wrh.ox.ac.uk/files/when-are-postpartum-haemorrhages-diagnosed-a-nested-observational-study-within-the-e-motive-cluster-randomised-trial.pdf/@@download
+- NEJM Journal Watch on the evidence for the "golden hour" — https://clinician.nejm.org/EM201003120000003
+- Association of prehospital time with in-hospital trauma mortality (JAMA Surgery, 2019) — https://pmc.ncbi.nlm.nih.gov/articles/PMC6764001
+- Databricks H3 geospatial functions — https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-h3-geospatial-functions-alpha
+- Databricks Free Edition limitations — https://docs.databricks.com/aws/en/getting-started/free-edition-limitations

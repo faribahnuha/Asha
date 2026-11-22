@@ -1,0 +1,810 @@
+<title>Facility Match Review</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --ground:#F6F8F7;
+    --surface:#FFFFFF;
+    --surface-sunk:#EFF3F1;
+    --text:#10181A;
+    --text-muted:#5B6B68;
+    --border:#D9E2DF;
+    --accent:#0B6E62;
+    --accent-soft:#E2EFEA;
+    --good:#2E7D54;
+    --good-soft:#E3F1E8;
+    --warn:#9C6A20;
+    --warn-soft:#F7EBD6;
+    --bad:#A8402B;
+    --bad-soft:#F6E2DD;
+    --shadow: 0 1px 2px rgba(16,24,26,0.06), 0 6px 16px rgba(16,24,26,0.05);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#0D1416;
+      --surface:#141C1E;
+      --surface-sunk:#101718;
+      --text:#E7EFED;
+      --text-muted:#90A19E;
+      --border:#273330;
+      --accent:#54D8C3;
+      --accent-soft:#17302B;
+      --good:#5FC98C;
+      --good-soft:#15291F;
+      --warn:#E3A95B;
+      --warn-soft:#2E2518;
+      --bad:#E2816B;
+      --bad-soft:#2E1C18;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 20px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0D1416;
+    --surface:#141C1E;
+    --surface-sunk:#101718;
+    --text:#E7EFED;
+    --text-muted:#90A19E;
+    --border:#273330;
+    --accent:#54D8C3;
+    --accent-soft:#17302B;
+    --good:#5FC98C;
+    --good-soft:#15291F;
+    --warn:#E3A95B;
+    --warn-soft:#2E2518;
+    --bad:#E2816B;
+    --bad-soft:#2E1C18;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 20px rgba(0,0,0,0.35);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--ground);
+    color:var(--text);
+    font-family:"IBM Plex Sans", system-ui, sans-serif;
+    padding:28px 20px 56px;
+  }
+  .wrap{max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:20px;}
+
+  h1,h2,h3{font-family:"Spectral", Georgia, serif; text-wrap:balance; margin:0;}
+  .mono, .num{font-family:"IBM Plex Mono", monospace; font-variant-numeric: tabular-nums;}
+
+  header.page{display:flex; flex-direction:column; gap:6px;}
+  header.page h1{font-size:28px; font-weight:600; letter-spacing:-0.01em;}
+  .subhead{color:var(--text-muted); font-size:14.5px; max-width:68ch; line-height:1.5;}
+  .methodology{
+    display:flex; flex-wrap:wrap; gap:8px 18px;
+    font-size:12.5px; color:var(--text-muted);
+    background:var(--surface-sunk); border:1px solid var(--border);
+    border-radius:10px; padding:10px 14px;
+  }
+  .methodology b{color:var(--text); font-weight:500;}
+
+  nav.cases{display:flex; flex-wrap:wrap; gap:8px;}
+  nav.cases button{
+    font-family:inherit; font-size:13.5px; color:var(--text);
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:999px; padding:8px 14px; cursor:pointer;
+    transition: border-color .15s, background .15s;
+  }
+  nav.cases button:hover{border-color:var(--accent);}
+  nav.cases button[aria-pressed="true"]{
+    background:var(--accent); color:var(--surface); border-color:var(--accent); font-weight:500;
+  }
+  nav.cases button:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+
+  .case-summary{
+    display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:12px;
+    border-bottom:1px solid var(--border); padding-bottom:14px;
+  }
+  .case-summary h2{font-size:21px; font-weight:600;}
+  .case-summary .scenario{color:var(--text-muted); font-size:14px; margin-top:2px;}
+  .case-meta{text-align:right; font-size:12.5px; color:var(--text-muted);}
+  .case-meta .num{color:var(--text); font-size:13.5px;}
+
+  .outcome-banner{
+    font-size:13.5px; padding:10px 14px; border-radius:10px;
+    display:none; gap:8px; align-items:flex-start; line-height:1.45;
+  }
+  .outcome-banner.show{display:flex;}
+  .outcome-banner.warn{background:var(--warn-soft); color:var(--warn); border:1px solid var(--warn);}
+  .outcome-banner.info{background:var(--accent-soft); color:var(--accent); border:1px solid var(--accent);}
+
+  .layout{display:grid; grid-template-columns: 1fr 1.25fr; gap:22px; align-items:start;}
+  @media (max-width: 760px){ .layout{grid-template-columns:1fr;} }
+
+  .panel{
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:16px; box-shadow:var(--shadow);
+  }
+  .panel h3{font-size:14px; font-weight:600; letter-spacing:.02em; text-transform:uppercase; color:var(--text-muted); margin-bottom:10px;}
+
+  .diagram-note{font-size:12px; color:var(--text-muted); margin-top:8px; line-height:1.5;}
+  svg.position-map{width:100%; height:auto; display:block;}
+  .legend{display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:var(--text-muted); margin-top:10px;}
+  .legend span{display:inline-flex; align-items:center; gap:6px;}
+  .legend .dot{width:9px; height:9px; border-radius:50%; display:inline-block;}
+
+  .weights{margin-top:14px; display:flex; flex-direction:column; gap:6px;}
+  .weights .row{display:grid; grid-template-columns: 90px 1fr 44px; align-items:center; gap:8px; font-size:12.5px;}
+  .weights .bar-track{height:7px; background:var(--surface-sunk); border-radius:5px; overflow:hidden;}
+  .weights .bar-fill{height:100%; background:var(--accent); border-radius:5px;}
+  .weights .label{color:var(--text-muted);}
+  .weights .value{text-align:right;}
+  .no-weights{font-size:12.5px; color:var(--text-muted); margin-top:12px;}
+
+  .facility-list{display:flex; flex-direction:column; gap:12px;}
+  .facility-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:14px 16px; box-shadow:var(--shadow);
+    display:grid; grid-template-columns:30px 1fr; gap:12px;
+  }
+  .rank{
+    width:30px; height:30px; border-radius:50%; background:var(--surface-sunk);
+    border:1px solid var(--border); color:var(--text-muted);
+    display:flex; align-items:center; justify-content:center;
+    font-family:"IBM Plex Mono", monospace; font-size:13px; font-weight:500;
+  }
+  .facility-main{display:flex; flex-direction:column; gap:8px; min-width:0;}
+  .facility-top{display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; align-items:baseline;}
+  .facility-name{font-family:"Spectral", serif; font-weight:600; font-size:16.5px; line-height:1.3;}
+  .facility-place{color:var(--text-muted); font-size:12.5px;}
+  .facility-stats{display:flex; gap:14px; font-size:12.5px; color:var(--text-muted); flex-wrap:wrap;}
+  .facility-stats .num{color:var(--text); font-size:13px;}
+
+  .chip{
+    display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:500;
+    padding:3px 9px; border-radius:999px; white-space:nowrap;
+  }
+  .chip.confirmed{background:var(--good-soft); color:var(--good);}
+  .chip.unconfirmed{background:var(--warn-soft); color:var(--warn);}
+  .chip::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor;}
+
+  .blood-line{font-size:12.5px; color:var(--text-muted);}
+
+  .service-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:2px;}
+  @media (max-width:420px){ .service-grid{grid-template-columns:1fr;} }
+  .service-col h4{font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--text-muted); margin:0 0 4px; font-weight:500;}
+  .service-col ul{margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:3px;}
+  .service-col li{font-size:12.5px; display:flex; align-items:center; gap:6px;}
+  .service-col.has li::before{content:"+"; color:var(--good); font-weight:600;}
+  .service-col.missing li::before{content:"\2212"; color:var(--bad); font-weight:600;}
+  .service-empty{font-size:12px; color:var(--text-muted); font-style:italic;}
+
+  .facility-note{
+    font-size:12px; color:var(--warn); background:var(--warn-soft);
+    border-radius:8px; padding:7px 10px; line-height:1.4;
+  }
+
+  footer.page{color:var(--text-muted); font-size:12px; text-align:center; margin-top:8px;}
+</style>
+
+<div class="wrap">
+  <header class="page">
+    <h1>Facility Match Review</h1>
+    <p class="subhead">Six real locations run through the actual recommendation pipeline — a dense city, a sparse rural area, a state with almost no linked facility data, and a remote town with nothing confirmed nearby. These are precomputed results from the real dataset, not a live query.</p>
+    <div class="methodology">
+      <span><b>Distance:</b> straight-line, assumed 1.3&times; detour, 35 km/h (not measured from real routes)</span>
+      <span><b>Time windows:</b> 60 min (bleeding/unsure), 120 min (anemia)</span>
+      <span><b>Candidates found</b> &ne; facilities shown — only the top 3 reachable are listed</span>
+    </div>
+  </header>
+
+  <nav class="cases" id="caseNav" aria-label="Sample case"></nav>
+
+  <section id="caseView"></section>
+
+  <footer class="page">Position diagram is a simplified coordinate plot, not a geographic map — bearings and coastlines are not to scale.</footer>
+</div>
+
+<script>
+const CASES = [
+  {
+    "label": "Mumbai (dense urban)",
+    "scenario_key": "injury_bleeding",
+    "scenario_label": "Accident or injury with major bleeding",
+    "patient_lat": 19.076,
+    "patient_lon": 72.8777,
+    "candidates_considered": 657,
+    "facilities": [
+      {
+        "name": "Holy Spirit Hospital Andheri",
+        "city": "Mumbai",
+        "state": "Maharashtra",
+        "lat": 19.07636260986328,
+        "lon": 72.87838745117188,
+        "drive_min": 0.2,
+        "score": 0.895,
+        "confirmed": true,
+        "blood_level": 1,
+        "blood_level_description": "Has blood on site (components and 24x7 status not confirmed)",
+        "services_has": [
+          "Emergency surgery",
+          "ICU"
+        ],
+        "services_missing": [
+          "Trauma care"
+        ],
+        "services_note": "",
+        "note": ""
+      },
+      {
+        "name": "Lion Tarachand Bapa Hospital",
+        "city": "Sion",
+        "state": "Maharashtra",
+        "lat": 19.03829765319824,
+        "lon": 72.85929870605469,
+        "drive_min": 10.3,
+        "score": 0.805,
+        "confirmed": true,
+        "blood_level": 1,
+        "blood_level_description": "Has blood on site (components and 24x7 status not confirmed)",
+        "services_has": [
+          "Emergency surgery",
+          "ICU"
+        ],
+        "services_missing": [
+          "Trauma care"
+        ],
+        "services_note": "",
+        "note": ""
+      },
+      {
+        "name": "KLS Memorial Hospital",
+        "city": "Mumbai",
+        "state": "Maharashtra",
+        "lat": 19.10784912109375,
+        "lon": 72.84078979492188,
+        "drive_min": 11.7,
+        "score": 0.786,
+        "confirmed": true,
+        "blood_level": 1,
+        "blood_level_description": "Has blood on site (components and 24x7 status not confirmed)",
+        "services_has": [
+          "Emergency surgery",
+          "ICU"
+        ],
+        "services_missing": [
+          "Trauma care"
+        ],
+        "services_note": "",
+        "note": ""
+      }
+    ],
+    "weights": {
+      "drive_min": 0.683,
+      "blood_level": 0.0,
+      "needed_services": 0.317
+    },
+    "outcome_note": ""
+  },
+  {
+    "label": "Rural Chhattisgarh",
+    "scenario_key": "pregnancy_bleeding",
+    "scenario_label": "Pregnant or just delivered, heavy bleeding",
+    "patient_lat": 22.0084,
+    "patient_lon": 81.2374,
+    "candidates_considered": 605,
+    "facilities": [
+      {
+        "name": "Chandrayan Health Care",
+        "city": "Kawardha",
+        "state": "Chhattisgarh",
+        "lat": 22.00836181640625,
+        "lon": 81.23738098144531,
+        "drive_min": 0.0,
+        "score": 1.0,
+        "confirmed": true,
+        "blood_level": 1,
+        "blood_level_description": "Has blood on site (components and 24x7 status not confirmed)",
+        "services_has": [
+          "C-section",
+          "Obstetric care",
+          "ICU"
+        ],
+        "services_missing": [],
+        "services_note": "",
+        "note": ""
+      },
+      {
+        "name": "Kawardha District Hospital Blood Bank",
+        "city": "Kawardha",
+        "state": "Chhattisgarh",
+        "lat": 22.036,
+        "lon": 81.221,
+        "drive_min": 7.8,
+        "score": 1.0,
+        "confirmed": false,
+        "blood_level": 2,
+        "blood_level_description": "Has blood plus components (platelets, plasma)",
+        "services_has": [],
+        "services_missing": [],
+        "services_note": "No service data available for this facility",
+        "note": "No reachable facility has confirmed service data; ranked on drive time and blood level only \u2014 capability not confirmed, call ahead"
+      },
+      {
+        "name": "Aarogyam Superspeciality Hospital & Research Center",
+        "city": "Bhilai",
+        "state": "Chhattisgarh",
+        "lat": 21.213558197021484,
+        "lon": 81.29872131347656,
+        "drive_min": 197.5,
+        "score": 0.0,
+        "confirmed": true,
+        "blood_level": 1,
+        "blood_level_description": "Has blood on site (components and 24x7 status not confirmed)",
+        "services_has": [
+          "ICU"
+        ],
+        "services_missing": [
+          "C-section",
+          "Obstetric care"
+        ],
+        "services_note": "",
+        "note": "Outside the time window for this scenario; shown because fewer than 3 were in range"
+      }
+    ],
+    "weights": {},
+    "outcome_note": ""
+  },
+  {
+    "label": "Delhi",
+    "scenario_key": "severe_anemia",
+    "scenario_label": "Severe weakness or anemia, no injury (including in pregnancy)",
+    "patient_lat": 28.7041,
+    "patient_lon": 77.1025,
+    "candidates_considered": 822,
+    "facilities": [
+      {
+        "name": "Shree Aggarsain International Hospital",
+        "city": "Rohini",
+        "state": "Delhi",
+        "lat": 28.733558654785156,
+        "lon": 77.10401916503906,
+        "drive_min": 7.3,
+        "score": 1.0,
+        "confirmed": true,
+        "blood_level": 1,
+        "blood_level_description": "Has blood on site (components and 24x7 status not confirmed)",
+        "services_has": [
+          "General medicine",
+          "ICU"
+        ],
+        "services_missing": [],
+        "services_note": "",
+        "note": ""
+      },
+      {
+        "name": "LNJP Hospital",
+        "city": "New Delhi",
+        "state": "Delhi",
+        "lat": 28.638687133789062,
+        "lon": 77.23989868164062,
+        "drive_min": 34.0,
+        "score": 0.853,
+        "confirmed": true,
+        "blood_level": 1,
+        "blood_level_description": "Has blood on site (components and 24x7 status not confirmed)",
+        "services_has": [
+          "General medicine",
+          "ICU"
+        ],
+        "services_missing": [],
+        "services_note": "",
+        "note": ""
+      },
+      {
+        "name": "RJ Super Speciality Hospital",
+        "city": "Bahadurgarh",
+        "state": "Haryana",
+        "lat": 28.689809799194336,
+        "lon": 76.94279479980469,
+        "drive_min": 34.9,
+        "score": 0.848,
+        "confirmed": true,
+        "blood_level": 1,
+        "blood_level_description": "Has blood on site (components and 24x7 status not confirmed)",
+        "services_has": [
+          "General medicine",
+          "ICU"
+        ],
+        "services_missing": [],
+        "services_note": "",
+        "note": ""
+      }
+    ],
+    "weights": {
+      "drive_min": 0.364,
+      "blood_level": 0.0,
+      "needed_services": 0.636
+    },
+    "outcome_note": ""
+  },
+  {
+    "label": "Imphal, Manipur",
+    "scenario_key": "not_sure",
+    "scenario_label": "Other blood-related / not sure",
+    "patient_lat": 24.817,
+    "patient_lon": 93.9368,
+    "candidates_considered": 134,
+    "facilities": [
+      {
+        "name": "Model Blood Bank - Department of IHBT",
+        "city": "Imphal",
+        "state": "Manipur",
+        "lat": 24.8159,
+        "lon": 93.92283,
+        "drive_min": 3.2,
+        "score": 1.0,
+        "confirmed": false,
+        "blood_level": 3,
+        "blood_level_description": "Has blood, components, and is open 24x7",
+        "services_has": [],
+        "services_missing": [],
+        "services_note": "No service data available for this facility",
+        "note": "No reachable facility has confirmed service data; ranked on drive time and blood level only \u2014 capability not confirmed, call ahead"
+      },
+      {
+        "name": "JNIMS Hospital Blood Bank and Transfusion Unit",
+        "city": "Porompat",
+        "state": "Manipur",
+        "lat": 24.81117,
+        "lon": 93.9617,
+        "drive_min": 5.8,
+        "score": 0.944,
+        "confirmed": false,
+        "blood_level": 2,
+        "blood_level_description": "Has blood plus components (platelets, plasma)",
+        "services_has": [],
+        "services_missing": [],
+        "services_note": "No service data available for this facility",
+        "note": "No reachable facility has confirmed service data; ranked on drive time and blood level only \u2014 capability not confirmed, call ahead"
+      },
+      {
+        "name": "Shija Blood Bank and Transfusion Services",
+        "city": "Imphal",
+        "state": "Manipur",
+        "lat": 24.83581,
+        "lon": 93.91422,
+        "drive_min": 6.9,
+        "score": 0.921,
+        "confirmed": false,
+        "blood_level": 3,
+        "blood_level_description": "Has blood, components, and is open 24x7",
+        "services_has": [],
+        "services_missing": [],
+        "services_note": "No service data available for this facility",
+        "note": "No reachable facility has confirmed service data; ranked on drive time and blood level only \u2014 capability not confirmed, call ahead"
+      }
+    ],
+    "weights": {
+      "drive_min": 0.983,
+      "blood_level": 0.017
+    },
+    "outcome_note": "No reachable facility has confirmed service data; ranked on drive time and blood level only \u2014 capability not confirmed, call ahead"
+  },
+  {
+    "label": "Bengaluru",
+    "scenario_key": "pregnancy_bleeding",
+    "scenario_label": "Pregnant or just delivered, heavy bleeding",
+    "patient_lat": 12.9716,
+    "patient_lon": 77.5946,
+    "candidates_considered": 1027,
+    "facilities": [
+      {
+        "name": "Bhagwan Mahaveer Jain Hospital",
+        "city": "Bengaluru",
+        "state": "Karnataka",
+        "lat": 12.991531372070312,
+        "lon": 77.59504699707031,
+        "drive_min": 4.9,
+        "score": 0.816,
+        "confirmed": true,
+        "blood_level": 1,
+        "blood_level_description": "Has blood on site (components and 24x7 status not confirmed)",
+        "services_has": [
+          "Obstetric care",
+          "ICU"
+        ],
+        "services_missing": [
+          "C-section"
+        ],
+        "services_note": "",
+        "note": ""
+      },
+      {
+        "name": "Kanva Sri Sai Hospital",
+        "city": "Bangalore",
+        "state": "Karnataka",
+        "lat": 13.017562866210938,
+        "lon": 77.53944396972656,
+        "drive_min": 17.5,
+        "score": 0.701,
+        "confirmed": true,
+        "blood_level": 1,
+        "blood_level_description": "Has blood on site (components and 24x7 status not confirmed)",
+        "services_has": [
+          "Obstetric care",
+          "ICU"
+        ],
+        "services_missing": [
+          "C-section"
+        ],
+        "services_note": "",
+        "note": ""
+      },
+      {
+        "name": "Rajashri Grandhim Speciality Hospital",
+        "city": "Bangalore",
+        "state": "Karnataka",
+        "lat": 12.895164489746094,
+        "lon": 77.60752868652344,
+        "drive_min": 19.2,
+        "score": 0.678,
+        "confirmed": true,
+        "blood_level": 1,
+        "blood_level_description": "Has blood on site (components and 24x7 status not confirmed)",
+        "services_has": [
+          "Obstetric care",
+          "ICU"
+        ],
+        "services_missing": [
+          "C-section"
+        ],
+        "services_note": "",
+        "note": ""
+      }
+    ],
+    "weights": {
+      "drive_min": 0.581,
+      "blood_level": 0.0,
+      "needed_services": 0.419
+    },
+    "outcome_note": ""
+  },
+  {
+    "label": "Leh, Ladakh",
+    "scenario_key": "injury_bleeding",
+    "scenario_label": "Accident or injury with major bleeding",
+    "patient_lat": 34.1526,
+    "patient_lon": 77.5771,
+    "candidates_considered": 254,
+    "facilities": [
+      {
+        "name": "SNM Hospital Blood Bank",
+        "city": "Leh",
+        "state": "Jammu and Kashmir",
+        "lat": 34.1538,
+        "lon": 77.58021,
+        "drive_min": 0.7,
+        "score": 1.0,
+        "confirmed": false,
+        "blood_level": 2,
+        "blood_level_description": "Has blood plus components (platelets, plasma)",
+        "services_has": [],
+        "services_missing": [],
+        "services_note": "No service data available for this facility",
+        "note": "No reachable facility has confirmed service data; ranked on drive time and blood level only \u2014 capability not confirmed, call ahead"
+      },
+      {
+        "name": "General Hospital Blood Bank",
+        "city": "Leh",
+        "state": "Jammu and Kashmir",
+        "lat": 34.0520169,
+        "lon": 77.66966692,
+        "drive_min": 31.3,
+        "score": 0.0,
+        "confirmed": false,
+        "blood_level": 2,
+        "blood_level_description": "Has blood plus components (platelets, plasma)",
+        "services_has": [],
+        "services_missing": [],
+        "services_note": "No service data available for this facility",
+        "note": "No reachable facility has confirmed service data; ranked on drive time and blood level only \u2014 capability not confirmed, call ahead"
+      },
+      {
+        "name": "92 Base Hospital, Badami Bagh",
+        "city": "Srinagar",
+        "state": "Jammu and Kashmir",
+        "lat": 34.065834045410156,
+        "lon": 74.85623168945312,
+        "drive_min": 558.7,
+        "score": 0.0,
+        "confirmed": true,
+        "blood_level": 1,
+        "blood_level_description": "Has blood on site (components and 24x7 status not confirmed)",
+        "services_has": [
+          "Emergency surgery",
+          "Trauma care",
+          "ICU"
+        ],
+        "services_missing": [],
+        "services_note": "",
+        "note": "Outside the time window for this scenario; shown because fewer than 3 were in range"
+      }
+    ],
+    "weights": {
+      "drive_min": 1.0,
+      "blood_level": 0.0
+    },
+    "outcome_note": "No reachable facility has confirmed service data; ranked on drive time and blood level only \u2014 capability not confirmed, call ahead"
+  }
+];
+
+const nav = document.getElementById('caseNav');
+const view = document.getElementById('caseView');
+
+function escapeHtml(value){
+  return String(value).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function buildNav(activeIndex){
+  nav.innerHTML = CASES.map((c, i) => (
+    `<button data-index="${i}" aria-pressed="${i === activeIndex}">${escapeHtml(c.label)}</button>`
+  )).join('');
+  nav.querySelectorAll('button').forEach((btn) => {
+    btn.addEventListener('click', () => renderCase(Number(btn.dataset.index)));
+  });
+}
+
+function buildPositionMap(caseData){
+  const W = 360, H = 300, PAD = 36;
+  const points = [{ lat: caseData.patient_lat, lon: caseData.patient_lon, kind: 'patient' }]
+    .concat(caseData.facilities.map((f, i) => ({ lat: f.lat, lon: f.lon, kind: 'facility', rank: i + 1 })));
+
+  const lats = points.map(p => p.lat), lons = points.map(p => p.lon);
+  let latMin = Math.min(...lats), latMax = Math.max(...lats);
+  let lonMin = Math.min(...lons), lonMax = Math.max(...lons);
+  const latSpan = Math.max(latMax - latMin, 0.01) * 1.4;
+  const lonSpan = Math.max(lonMax - lonMin, 0.01) * 1.4;
+  const latMid = (latMax + latMin) / 2, lonMid = (lonMax + lonMin) / 2;
+  latMin = latMid - latSpan / 2; latMax = latMid + latSpan / 2;
+  lonMin = lonMid - lonSpan / 2; lonMax = lonMid + lonSpan / 2;
+
+  const x = (lon) => PAD + ((lon - lonMin) / (lonMax - lonMin)) * (W - 2 * PAD);
+  const y = (lat) => H - PAD - ((lat - latMin) / (latMax - latMin)) * (H - 2 * PAD);
+
+  let svg = `<svg class="position-map" viewBox="0 0 ${W} ${H}" role="img" aria-label="Simplified position plot of patient and recommended facilities">`;
+  svg += `<rect x="0" y="0" width="${W}" height="${H}" fill="var(--surface-sunk)" rx="10"/>`;
+
+  // grid + axis ticks (lat/lon, 3 lines each)
+  for (let i = 0; i <= 2; i++) {
+    const gx = PAD + (i / 2) * (W - 2 * PAD);
+    const gy = PAD + (i / 2) * (H - 2 * PAD);
+    svg += `<line x1="${gx}" y1="${PAD}" x2="${gx}" y2="${H - PAD}" stroke="var(--border)" stroke-width="1"/>`;
+    svg += `<line x1="${PAD}" y1="${gy}" x2="${W - PAD}" y2="${gy}" stroke="var(--border)" stroke-width="1"/>`;
+    const lonLabel = (lonMin + (i / 2) * (lonMax - lonMin)).toFixed(2);
+    const latLabel = (latMax - (i / 2) * (latMax - latMin)).toFixed(2);
+    svg += `<text x="${gx}" y="${H - PAD + 14}" font-size="9" fill="var(--text-muted)" text-anchor="middle" font-family="IBM Plex Mono, monospace">${lonLabel}&deg;</text>`;
+    svg += `<text x="${PAD - 6}" y="${gy + 3}" font-size="9" fill="var(--text-muted)" text-anchor="end" font-family="IBM Plex Mono, monospace">${latLabel}&deg;</text>`;
+  }
+
+  // lines from patient to each facility
+  const patientPoint = points[0];
+  points.slice(1).forEach((p) => {
+    svg += `<line x1="${x(patientPoint.lon)}" y1="${y(patientPoint.lat)}" x2="${x(p.lon)}" y2="${y(p.lat)}" stroke="var(--border)" stroke-width="1.25" stroke-dasharray="3,3"/>`;
+  });
+
+  // facility pins
+  points.slice(1).forEach((p) => {
+    svg += `<circle cx="${x(p.lon)}" cy="${y(p.lat)}" r="10" fill="var(--accent)" opacity="0.15"/>`;
+    svg += `<circle cx="${x(p.lon)}" cy="${y(p.lat)}" r="7" fill="var(--accent)" stroke="var(--surface)" stroke-width="1.5"/>`;
+    svg += `<text x="${x(p.lon)}" y="${y(p.lat) + 3.5}" font-size="9.5" fill="var(--surface)" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-weight="600">${p.rank}</text>`;
+  });
+
+  // patient marker (drawn last, on top)
+  svg += `<circle cx="${x(patientPoint.lon)}" cy="${y(patientPoint.lat)}" r="12" fill="var(--bad)" opacity="0.18"/>`;
+  svg += `<path d="M ${x(patientPoint.lon)} ${y(patientPoint.lat) - 8} l 6 10 h -12 z" fill="var(--bad)" stroke="var(--surface)" stroke-width="1.25"/>`;
+
+  svg += `</svg>`;
+  return svg;
+}
+
+function buildWeights(weights){
+  const entries = Object.entries(weights || {});
+  if (entries.length === 0){
+    return `<p class="no-weights">Only one candidate was reachable, so no weighting was needed — it was recommended directly.</p>`;
+  }
+  const labels = { drive_min: 'Drive time', blood_level: 'Blood level', needed_services: 'Needed services' };
+  return `<div class="weights">` + entries.map(([key, value]) => (
+    `<div class="row">
+      <span class="label">${labels[key] || key}</span>
+      <span class="bar-track"><span class="bar-fill" style="width:${Math.round(value * 100)}%"></span></span>
+      <span class="value num">${(value * 100).toFixed(0)}%</span>
+    </div>`
+  )).join('') + `</div>`;
+}
+
+function buildFacilityCard(facility, rank){
+  const chip = facility.confirmed
+    ? `<span class="chip confirmed">Confirmed</span>`
+    : `<span class="chip unconfirmed">Unconfirmed</span>`;
+
+  const serviceBlock = facility.confirmed
+    ? `<div class="service-grid">
+        <div class="service-col has">
+          <h4>Has</h4>
+          ${facility.services_has.length
+            ? `<ul>${facility.services_has.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ul>`
+            : `<p class="service-empty">None of this scenario's services confirmed</p>`}
+        </div>
+        <div class="service-col missing">
+          <h4>Missing</h4>
+          ${facility.services_missing.length
+            ? `<ul>${facility.services_missing.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ul>`
+            : `<p class="service-empty">Has everything this scenario needs</p>`}
+        </div>
+      </div>`
+    : `<p class="service-empty">${escapeHtml(facility.services_note)}</p>`;
+
+  const place = [facility.city, facility.state].filter(Boolean).join(', ');
+
+  return `<div class="facility-card">
+    <div class="rank">${rank}</div>
+    <div class="facility-main">
+      <div class="facility-top">
+        <div>
+          <div class="facility-name">${escapeHtml(facility.name)}</div>
+          <div class="facility-place">${escapeHtml(place)}</div>
+        </div>
+        ${chip}
+      </div>
+      <div class="facility-stats">
+        <span>drive time <span class="num">~${facility.drive_min} min</span></span>
+        <span>match score <span class="num">${facility.score.toFixed(3)}</span></span>
+      </div>
+      <div class="blood-line">${escapeHtml(facility.blood_level_description)}</div>
+      ${serviceBlock}
+      ${facility.note ? `<div class="facility-note">${escapeHtml(facility.note)}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function renderCase(index){
+  buildNav(index);
+  const caseData = CASES[index];
+
+  const bannerClass = caseData.outcome_note
+    ? (caseData.outcome_note.includes('not confirmed') || caseData.outcome_note.includes('No candidates')
+        ? 'warn' : 'info')
+    : '';
+  const banner = caseData.outcome_note
+    ? `<div class="outcome-banner show ${bannerClass}">${escapeHtml(caseData.outcome_note)}</div>`
+    : '';
+
+  const facilitiesHtml = caseData.facilities.length
+    ? caseData.facilities.map((f, i) => buildFacilityCard(f, i + 1)).join('')
+    : `<div class="panel"><p class="service-empty">No candidates were found within this scenario's reachable area.</p></div>`;
+
+  view.innerHTML = `
+    <div class="case-summary">
+      <div>
+        <h2>${escapeHtml(caseData.label)}</h2>
+        <div class="scenario">${escapeHtml(caseData.scenario_label)}</div>
+      </div>
+      <div class="case-meta">
+        patient at <span class="num mono">${caseData.patient_lat.toFixed(4)}, ${caseData.patient_lon.toFixed(4)}</span><br>
+        <span class="num">${caseData.candidates_considered}</span> candidates considered
+      </div>
+    </div>
+    ${banner}
+    <div class="layout">
+      <div class="panel">
+        <h3>Position</h3>
+        ${buildPositionMap(caseData)}
+        <div class="legend">
+          <span><span class="dot" style="background:var(--bad)"></span>Patient</span>
+          <span><span class="dot" style="background:var(--accent)"></span>Recommended facility (ranked)</span>
+        </div>
+        <p class="diagram-note">Simplified coordinate plot, not a routed or geographically accurate map.</p>
+        <h3 style="margin-top:18px;">Scoring weights used</h3>
+        ${buildWeights(caseData.weights)}
+      </div>
+      <div class="facility-list">
+        ${facilitiesHtml}
+      </div>
+    </div>
+  `;
+}
+
+renderCase(0);
+</script>

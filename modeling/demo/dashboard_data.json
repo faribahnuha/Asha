@@ -1,0 +1,432 @@
+[
+  {
+    "label": "Mumbai (dense urban)",
+    "scenario_key": "injury_bleeding",
+    "scenario_label": "Accident or injury with major bleeding",
+    "patient_lat": 19.076,
+    "patient_lon": 72.8777,
+    "candidates_considered": 657,
+    "facilities": [
+      {
+        "name": "Holy Spirit Hospital Andheri",
+        "city": "Mumbai",
+        "state": "Maharashtra",
+        "lat": 19.07636260986328,
+        "lon": 72.87838745117188,
+        "drive_min": 0.2,
+        "score": 0.895,
+        "confirmed": true,
+        "blood_level": 1,
+        "blood_level_description": "Has blood on site (components and 24x7 status not confirmed)",
+        "services_has": [
+          "Emergency surgery",
+          "ICU"
+        ],
+        "services_missing": [
+          "Trauma care"
+        ],
+        "services_note": "",
+        "note": ""
+      },
+      {
+        "name": "Lion Tarachand Bapa Hospital",
+        "city": "Sion",
+        "state": "Maharashtra",
+        "lat": 19.03829765319824,
+        "lon": 72.85929870605469,
+        "drive_min": 10.3,
+        "score": 0.805,
+        "confirmed": true,
+        "blood_level": 1,
+        "blood_level_description": "Has blood on site (components and 24x7 status not confirmed)",
+        "services_has": [
+          "Emergency surgery",
+          "ICU"
+        ],
+        "services_missing": [
+          "Trauma care"
+        ],
+        "services_note": "",
+        "note": ""
+      },
+      {
+        "name": "KLS Memorial Hospital",
+        "city": "Mumbai",
+        "state": "Maharashtra",
+        "lat": 19.10784912109375,
+        "lon": 72.84078979492188,
+        "drive_min": 11.7,
+        "score": 0.786,
+        "confirmed": true,
+        "blood_level": 1,
+        "blood_level_description": "Has blood on site (components and 24x7 status not confirmed)",
+        "services_has": [
+          "Emergency surgery",
+          "ICU"
+        ],
+        "services_missing": [
+          "Trauma care"
+        ],
+        "services_note": "",
+        "note": ""
+      }
+    ],
+    "weights": {
+      "drive_min": 0.683,
+      "blood_level": 0.0,
+      "needed_services": 0.317
+    },
+    "outcome_note": ""
+  },
+  {
+    "label": "Rural Chhattisgarh",
+    "scenario_key": "pregnancy_bleeding",
+    "scenario_label": "Pregnant or just delivered, heavy bleeding",
+    "patient_lat": 22.0084,
+    "patient_lon": 81.2374,
+    "candidates_considered": 605,
+    "facilities": [
+      {
+        "name": "Chandrayan Health Care",
+        "city": "Kawardha",
+        "state": "Chhattisgarh",
+        "lat": 22.00836181640625,
+        "lon": 81.23738098144531,
+        "drive_min": 0.0,
+        "score": 1.0,
+        "confirmed": true,
+        "blood_level": 1,
+        "blood_level_description": "Has blood on site (components and 24x7 status not confirmed)",
+        "services_has": [
+          "C-section",
+          "Obstetric care",
+          "ICU"
+        ],
+        "services_missing": [],
+        "services_note": "",
+        "note": ""
+      },
+      {
+        "name": "Kawardha District Hospital Blood Bank",
+        "city": "Kawardha",
+        "state": "Chhattisgarh",
+        "lat": 22.036,
+        "lon": 81.221,
+        "drive_min": 7.8,
+        "score": 1.0,
+        "confirmed": false,
+        "blood_level": 2,
+        "blood_level_description": "Has blood plus components (platelets, plasma)",
+        "services_has": [],
+        "services_missing": [],
+        "services_note": "No service data available for this facility",
+        "note": "No reachable facility has confirmed service data; ranked on drive time and blood level only \u2014 capability not confirmed, call ahead"
+      },
+      {
+        "name": "Aarogyam Superspeciality Hospital & Research Center",
+        "city": "Bhilai",
+        "state": "Chhattisgarh",
+        "lat": 21.213558197021484,
+        "lon": 81.29872131347656,
+        "drive_min": 197.5,
+        "score": 0.0,
+        "confirmed": true,
+        "blood_level": 1,
+        "blood_level_description": "Has blood on site (components and 24x7 status not confirmed)",
+        "services_has": [
+          "ICU"
+        ],
+        "services_missing": [
+          "C-section",
+          "Obstetric care"
+        ],
+        "services_note": "",
+        "note": "Outside the time window for this scenario; shown because fewer than 3 were in range"
+      }
+    ],
+    "weights": {},
+    "outcome_note": ""
+  },
+  {
+    "label": "Delhi",
+    "scenario_key": "severe_anemia",
+    "scenario_label": "Severe weakness or anemia, no injury (including in pregnancy)",
+    "patient_lat": 28.7041,
+    "patient_lon": 77.1025,
+    "candidates_considered": 822,
+    "facilities": [
+      {
+        "name": "Shree Aggarsain International Hospital",
+        "city": "Rohini",
+        "state": "Delhi",
+        "lat": 28.733558654785156,
+        "lon": 77.10401916503906,
+        "drive_min": 7.3,
+        "score": 1.0,
+        "confirmed": true,
+        "blood_level": 1,
+        "blood_level_description": "Has blood on site (components and 24x7 status not confirmed)",
+        "services_has": [
+          "General medicine",
+          "ICU"
+        ],
+        "services_missing": [],
+        "services_note": "",
+        "note": ""
+      },
+      {
+        "name": "LNJP Hospital",
+        "city": "New Delhi",
+        "state": "Delhi",
+        "lat": 28.638687133789062,
+        "lon": 77.23989868164062,
+        "drive_min": 34.0,
+        "score": 0.853,
+        "confirmed": true,
+        "blood_level": 1,
+        "blood_level_description": "Has blood on site (components and 24x7 status not confirmed)",
+        "services_has": [
+          "General medicine",
+          "ICU"
+        ],
+        "services_missing": [],
+        "services_note": "",
+        "note": ""
+      },
+      {
+        "name": "RJ Super Speciality Hospital",
+        "city": "Bahadurgarh",
+        "state": "Haryana",
+        "lat": 28.689809799194336,
+        "lon": 76.94279479980469,
+        "drive_min": 34.9,
+        "score": 0.848,
+        "confirmed": true,
+        "blood_level": 1,
+        "blood_level_description": "Has blood on site (components and 24x7 status not confirmed)",
+        "services_has": [
+          "General medicine",
+          "ICU"
+        ],
+        "services_missing": [],
+        "services_note": "",
+        "note": ""
+      }
+    ],
+    "weights": {
+      "drive_min": 0.364,
+      "blood_level": 0.0,
+      "needed_services": 0.636
+    },
+    "outcome_note": ""
+  },
+  {
+    "label": "Imphal, Manipur",
+    "scenario_key": "not_sure",
+    "scenario_label": "Other blood-related / not sure",
+    "patient_lat": 24.817,
+    "patient_lon": 93.9368,
+    "candidates_considered": 134,
+    "facilities": [
+      {
+        "name": "Model Blood Bank - Department of IHBT",
+        "city": "Imphal",
+        "state": "Manipur",
+        "lat": 24.8159,
+        "lon": 93.92283,
+        "drive_min": 3.2,
+        "score": 1.0,
+        "confirmed": false,
+        "blood_level": 3,
+        "blood_level_description": "Has blood, components, and is open 24x7",
+        "services_has": [],
+        "services_missing": [],
+        "services_note": "No service data available for this facility",
+        "note": "No reachable facility has confirmed service data; ranked on drive time and blood level only \u2014 capability not confirmed, call ahead"
+      },
+      {
+        "name": "JNIMS Hospital Blood Bank and Transfusion Unit",
+        "city": "Porompat",
+        "state": "Manipur",
+        "lat": 24.81117,
+        "lon": 93.9617,
+        "drive_min": 5.8,
+        "score": 0.944,
+        "confirmed": false,
+        "blood_level": 2,
+        "blood_level_description": "Has blood plus components (platelets, plasma)",
+        "services_has": [],
+        "services_missing": [],
+        "services_note": "No service data available for this facility",
+        "note": "No reachable facility has confirmed service data; ranked on drive time and blood level only \u2014 capability not confirmed, call ahead"
+      },
+      {
+        "name": "Shija Blood Bank and Transfusion Services",
+        "city": "Imphal",
+        "state": "Manipur",
+        "lat": 24.83581,
+        "lon": 93.91422,
+        "drive_min": 6.9,
+        "score": 0.921,
+        "confirmed": false,
+        "blood_level": 3,
+        "blood_level_description": "Has blood, components, and is open 24x7",
+        "services_has": [],
+        "services_missing": [],
+        "services_note": "No service data available for this facility",
+        "note": "No reachable facility has confirmed service data; ranked on drive time and blood level only \u2014 capability not confirmed, call ahead"
+      }
+    ],
+    "weights": {
+      "drive_min": 0.983,
+      "blood_level": 0.017
+    },
+    "outcome_note": "No reachable facility has confirmed service data; ranked on drive time and blood level only \u2014 capability not confirmed, call ahead"
+  },
+  {
+    "label": "Bengaluru",
+    "scenario_key": "pregnancy_bleeding",
+    "scenario_label": "Pregnant or just delivered, heavy bleeding",
+    "patient_lat": 12.9716,
+    "patient_lon": 77.5946,
+    "candidates_considered": 1027,
+    "facilities": [
+      {
+        "name": "Bhagwan Mahaveer Jain Hospital",
+        "city": "Bengaluru",
+        "state": "Karnataka",
+        "lat": 12.991531372070312,
+        "lon": 77.59504699707031,
+        "drive_min": 4.9,
+        "score": 0.816,
+        "confirmed": true,
+        "blood_level": 1,
+        "blood_level_description": "Has blood on site (components and 24x7 status not confirmed)",
+        "services_has": [
+          "Obstetric care",
+          "ICU"
+        ],
+        "services_missing": [
+          "C-section"
+        ],
+        "services_note": "",
+        "note": ""
+      },
+      {
+        "name": "Kanva Sri Sai Hospital",
+        "city": "Bangalore",
+        "state": "Karnataka",
+        "lat": 13.017562866210938,
+        "lon": 77.53944396972656,
+        "drive_min": 17.5,
+        "score": 0.701,
+        "confirmed": true,
+        "blood_level": 1,
+        "blood_level_description": "Has blood on site (components and 24x7 status not confirmed)",
+        "services_has": [
+          "Obstetric care",
+          "ICU"
+        ],
+        "services_missing": [
+          "C-section"
+        ],
+        "services_note": "",
+        "note": ""
+      },
+      {
+        "name": "Rajashri Grandhim Speciality Hospital",
+        "city": "Bangalore",
+        "state": "Karnataka",
+        "lat": 12.895164489746094,
+        "lon": 77.60752868652344,
+        "drive_min": 19.2,
+        "score": 0.678,
+        "confirmed": true,
+        "blood_level": 1,
+        "blood_level_description": "Has blood on site (components and 24x7 status not confirmed)",
+        "services_has": [
+          "Obstetric care",
+          "ICU"
+        ],
+        "services_missing": [
+          "C-section"
+        ],
+        "services_note": "",
+        "note": ""
+      }
+    ],
+    "weights": {
+      "drive_min": 0.581,
+      "blood_level": 0.0,
+      "needed_services": 0.419
+    },
+    "outcome_note": ""
+  },
+  {
+    "label": "Leh, Ladakh",
+    "scenario_key": "injury_bleeding",
+    "scenario_label": "Accident or injury with major bleeding",
+    "patient_lat": 34.1526,
+    "patient_lon": 77.5771,
+    "candidates_considered": 254,
+    "facilities": [
+      {
+        "name": "SNM Hospital Blood Bank",
+        "city": "Leh",
+        "state": "Jammu and Kashmir",
+        "lat": 34.1538,
+        "lon": 77.58021,
+        "drive_min": 0.7,
+        "score": 1.0,
+        "confirmed": false,
+        "blood_level": 2,
+        "blood_level_description": "Has blood plus components (platelets, plasma)",
+        "services_has": [],
+        "services_missing": [],
+        "services_note": "No service data available for this facility",
+        "note": "No reachable facility has confirmed service data; ranked on drive time and blood level only \u2014 capability not confirmed, call ahead"
+      },
+      {
+        "name": "General Hospital Blood Bank",
+        "city": "Leh",
+        "state": "Jammu and Kashmir",
+        "lat": 34.0520169,
+        "lon": 77.66966692,
+        "drive_min": 31.3,
+        "score": 0.0,
+        "confirmed": false,
+        "blood_level": 2,
+        "blood_level_description": "Has blood plus components (platelets, plasma)",
+        "services_has": [],
+        "services_missing": [],
+        "services_note": "No service data available for this facility",
+        "note": "No reachable facility has confirmed service data; ranked on drive time and blood level only \u2014 capability not confirmed, call ahead"
+      },
+      {
+        "name": "92 Base Hospital, Badami Bagh",
+        "city": "Srinagar",
+        "state": "Jammu and Kashmir",
+        "lat": 34.065834045410156,
+        "lon": 74.85623168945312,
+        "drive_min": 558.7,
+        "score": 0.0,
+        "confirmed": true,
+        "blood_level": 1,
+        "blood_level_description": "Has blood on site (components and 24x7 status not confirmed)",
+        "services_has": [
+          "Emergency surgery",
+          "Trauma care",
+          "ICU"
+        ],
+        "services_missing": [],
+        "services_note": "",
+        "note": "Outside the time window for this scenario; shown because fewer than 3 were in range"
+      }
+    ],
+    "weights": {
+      "drive_min": 1.0,
+      "blood_level": 0.0
+    },
+    "outcome_note": "No reachable facility has confirmed service data; ranked on drive time and blood level only \u2014 capability not confirmed, call ahead"
+  }
+]
