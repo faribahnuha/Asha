@@ -104,6 +104,19 @@ class RecommendResponse(BaseModel):
     weights: dict[str, float]
 
 
+@app.get("/")
+def root() -> dict[str, object]:
+    """There is no page at the bare root path — this exists only so visiting
+    the API's base URL in a browser shows what's actually available instead
+    of looking broken. The real endpoints are /health and /recommend.
+    """
+    return {
+        "service": API_TITLE,
+        "version": API_VERSION,
+        "endpoints": {"health": "/health", "recommend": "POST /recommend", "docs": "/docs"},
+    }
+
+
 @app.get("/health")
 def health_check() -> dict[str, str]:
     """Plain liveness check — confirms the process is up and data loaded,
