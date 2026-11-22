@@ -87,6 +87,20 @@
   .status{font-size:13px; color:var(--text-muted); min-height:1.4em;}
   .status.error{color:var(--bad);}
 
+  .weights-panel{
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:14px 16px; box-shadow:var(--shadow); margin-bottom:12px;
+  }
+  .weights-panel h3{font-size:12.5px; font-weight:600; letter-spacing:.02em; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px;}
+  .weights-row{display:grid; grid-template-columns: 110px 1fr 42px; align-items:center; gap:8px; font-size:12.5px; margin-bottom:6px;}
+  .weights-row:last-child{margin-bottom:0;}
+  .weights-row .label{color:var(--text-muted);}
+  .weights-row .value{text-align:right; color:var(--text);}
+  .bar-track{height:7px; background:var(--surface-sunk); border-radius:5px; overflow:hidden;}
+  .bar-fill{height:100%; background:var(--accent); border-radius:5px;}
+  .weights-empty{font-size:12.5px; color:var(--text-muted);}
+  .why-line{font-size:12.5px; color:var(--accent); background:var(--accent-soft); border-radius:8px; padding:7px 10px; line-height:1.4;}
+
   .facility-list{display:flex; flex-direction:column; gap:12px;}
   .facility-card{
     background:var(--surface); border:1px solid var(--border); border-radius:14px;
@@ -145,6 +159,7 @@
     </div>
     <div class="panel">
       <h3>Top 3 facilities</h3>
+      <div id="weightsPanel"></div>
       <div class="facility-list" id="results">
         <p class="placeholder">Pick a scenario and a location to see results.</p>
       </div>
@@ -290,15 +305,65 @@ function describeNote(note){
   return note && note.length > 0 ? `<div class="facility-note">${escapeHtml(note)}</div>` : "";
 }
 
+const CRITERION_LABELS = { drive_min: "Drive time", blood_level: "Blood level", needed_services: "Needed services" };
+
+function buildWeightsPanel(weights){
+  // This panel is supporting detail for someone who wants to check the
+  // reasoning, not the headline explanation — that's the plain-language
+  // "why" line on each card below. Nobody should have to read a percentage
+  // to understand a recommendation; this is here for whoever wants to.
+  const entries = Object.entries(weights || {});
+  const panel = document.getElementById("weightsPanel");
+  if (entries.length === 0){
+    panel.innerHTML = `<p class="weights-empty">Only one option was reachable, so nothing needed to be compared.</p>`;
+    return;
+  }
+  const rows = entries.map(([key, value]) => `
+    <div class="weights-row">
+      <span class="label">${CRITERION_LABELS[key] || key}</span>
+      <span class="bar-track"><span class="bar-fill" style="width:${Math.round(value * 100)}%"></span></span>
+      <span class="value">${(value * 100).toFixed(0)}%</span>
+    </div>`).join("");
+  panel.innerHTML = `<div class="weights-panel"><h3>How much each factor counted here (for reference)</h3>${rows}</div>`;
+}
+
+function buildWhyLine(facility, weights, rank){
+  // Plain-language reason, not the math behind it — a responder in the field
+  // needs "why should I trust this," not a weighting percentage. The number
+  // backing this is still visible in the weights panel above, for anyone
+  // who wants to check the reasoning rather than just the conclusion.
+  const entries = Object.entries(weights || {});
+  if (entries.length === 0) return ""; // single-option case: note already explains it
+  const [dominantKey] = entries.reduce((a, b) => (b[1] > a[1] ? b : a));
+
+  if (dominantKey === "drive_min"){
+    return rank === 1
+      ? `This is the closest reachable option — that's why it's ranked first.`
+      : `Ranked below a closer option. Still ${facility.drive_min} min away.`;
+  }
+  if (dominantKey === "needed_services"){
+    const total = facility.services_has.length + facility.services_missing.length;
+    const hasAll = facility.services_has.length === total;
+    return hasAll
+      ? `Ranked highly because it has everything this situation needs.`
+      : `Has ${facility.services_has.length} of ${total} services this situation needs — more than the other options nearby.`;
+  }
+  if (dominantKey === "blood_level"){
+    return `Ranked highly for its blood supply — ${facility.blood_level_description.toLowerCase()}.`;
+  }
+  return "";
+}
+
 function escapeHtml(value){
   return String(value).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
 
-function renderFacilityCard(facility, rank){
+function renderFacilityCard(facility, rank, weights){
   const chip = facility.confirmed
     ? `<span class="chip confirmed">Confirmed</span>`
     : `<span class="chip unconfirmed">Unconfirmed</span>`;
   const place = [facility.city, facility.state].filter(Boolean).join(", ");
+  const whyText = buildWhyLine(facility, weights, rank);
 
   const serviceBlock = facility.confirmed
     ? `<div class="service-grid">
@@ -329,6 +394,7 @@ function renderFacilityCard(facility, rank){
       </div>
       <div class="blood-line">${escapeHtml(facility.blood_level_description)}</div>
       ${serviceBlock}
+      ${whyText ? `<div class="why-line">${escapeHtml(whyText)}</div>` : ""}
       ${describeNote(facility.note)}
     </div>
   </div>`;
@@ -336,7 +402,9 @@ function renderFacilityCard(facility, rank){
 
 async function runQuery(){
   const resultsEl = document.getElementById("results");
+  const weightsPanelEl = document.getElementById("weightsPanel");
   resultsEl.innerHTML = `<p class="placeholder">Querying the live model…</p>`;
+  weightsPanelEl.innerHTML = "";
   setStatus("Waking the server if it was idle — this can take up to a minute on the first request.", false);
 
   try {
@@ -355,9 +423,11 @@ async function runQuery(){
 
     const data = await response.json();
     setStatus(`${data.candidates_considered} candidates considered near this point.`, false);
-    resultsEl.innerHTML = data.results.map((f, i) => renderFacilityCard(f, i + 1)).join("");
+    buildWeightsPanel(data.weights);
+    resultsEl.innerHTML = data.results.map((f, i) => renderFacilityCard(f, i + 1, data.weights)).join("");
   } catch (err) {
     resultsEl.innerHTML = `<p class="placeholder">Couldn't reach the live server. If it's been idle it may still be waking up — wait a moment and try again.</p>`;
+    weightsPanelEl.innerHTML = "";
     setStatus("Request failed.", true);
   }
 }
