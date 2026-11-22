@@ -28,7 +28,11 @@ const copy:Record<Language,Record<string,string>>={
 const I18n=React.createContext({language:'en' as Language,setLanguage:(_l:Language)=>{},t:(key:string)=>copy.en[key]||key});
 const useI18n=()=>React.useContext(I18n);
 
-const API_URL = (import.meta.env.VITE_ASHA_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+// `||` would treat an intentionally-empty VITE_ASHA_API_URL (same-origin
+// deployment, e.g. Databricks Apps serving both frontend and API) as unset
+// and fall back to the localhost default below — `??` only falls back when
+// the var is truly absent (e.g. local `npm run dev` with no .env file).
+const API_URL = (import.meta.env.VITE_ASHA_API_URL ?? 'http://localhost:8000').replace(/\/$/, '');
 const scenarios: {id:Scenario; title:string; sub:string}[] = [
   {id:'pregnancy_bleeding', title:'Pregnancy bleeding', sub:'Maternity & urgent blood support'},
   {id:'injury_bleeding', title:'General injury', sub:'Trauma & emergency support'},

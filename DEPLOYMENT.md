@@ -50,7 +50,7 @@ When testing **Use current location**, allow the location permission prompt. If 
 
 ## 5. Optional: deploy as a Databricks App
 
-A second deployment of the same frontend + API as a single Databricks App lives in `databricks_app/` (`server.py` mounts the built `dist/` on top of the unchanged `modeling/api/app.py`). Steps:
+A second deployment of the same frontend + API as a single Databricks App lives in `databricks-app/` (`server.py` mounts the built `dist/` on top of the unchanged `modeling/api/app.py`). `app.yaml` and `requirements.txt` stay at the repo root — the whole repo is uploaded so `server.py` can still reach `modeling/` and `dataset/` as siblings, and the `app.yaml` command uses uvicorn's `--app-dir databricks-app` so `server.py` doesn't need to live in an importable Python package (its folder name has a hyphen, which isn't valid in a dotted import path). Steps:
 
 ```bash
 npm install

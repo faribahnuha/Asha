@@ -1,6 +1,6 @@
 """
 ==============================================================================
-MODULE: databricks_app/server.py
+MODULE: databricks-app/server.py
 ------------------------------------------------------------------------------
 - HOW THIS RELATES TO THE LAST FILE: this is the Databricks Apps entrypoint.
   It imports the existing FastAPI app from modeling/api/app.py unchanged
@@ -40,6 +40,17 @@ assert _INDEX_HTML.exists(), (
     f"{_INDEX_HTML} not found — run 'npm run build' before deploying "
     "(the Databricks Apps runtime does not run a frontend build step)."
 )
+
+# modeling/api/app.py registers its own GET "/" (a JSON service-info route,
+# meant for the standalone-API deployment where nothing else lives at the
+# root). FastAPI matches that exact route before it ever reaches the
+# catch-all below, so the frontend would never be reachable at "/" without
+# this — drop it here rather than in app.py, which other deployments still
+# use as a standalone API with no frontend sharing its root.
+app.router.routes = [
+    route for route in app.router.routes
+    if not (getattr(route, "path", None) == "/" and "GET" in getattr(route, "methods", set()))
+]
 
 app.mount("/assets", StaticFiles(directory=_DIST / "assets"), name="frontend-assets")
 
