@@ -1,0 +1,5 @@
+scenario,label,urgency,window_parameter,required_capabilities,supporting_capabilities,min_blood_level,blood_products,rationale
+pregnancy_bleeding,"Pregnant or just gave birth, bleeding",high,window_high_min,obstetric_care|surgical_capacity|anaesthesia,critical_care|neonatal_care,3,"red cells + plasma (FFP) + cryoprecipitate, possibly platelets","Obstetric haemorrhage can need surgery (C-section, laparotomy) and quickly uses up clotting factors, so whole blood alone is not enough"
+injury_bleeding,"Accident or injury, bleeding",high,window_high_min,emergency_24x7|trauma_surgery|surgical_capacity,anaesthesia|critical_care|ct_imaging,3,"red cells + plasma + platelets","Major trauma bleeding needs surgical control and balanced component transfusion"
+severe_anemia,"Severe weakness or anaemia, no injury",lower,window_lower_min,inpatient_medicine,critical_care,1,"red cells","Stable severe anaemia needs red cells and admission, not emergency surgery"
+not_sure,"Not sure / other",high,window_high_min,emergency_24x7|surgical_capacity,anaesthesia|critical_care,3,"red cells + plasma + platelets","Assume the worst: treat as a bleeding emergency until assessed"

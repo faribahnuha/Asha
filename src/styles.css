@@ -130,3 +130,15 @@ button,input{font:inherit;color:inherit}
   .overlay{align-items:center}
   .sheet{border-radius:27px;max-height:88vh}
 }
+/* v2 model: chance of success, evidence quotes, blood source */
+.model-warning{background:#fbeaea;color:#7a2430;border:1px solid #e9c3c6;border-radius:10px;padding:10px 12px;font-size:11px;line-height:1.45;margin:8px 0 12px}
+.card .chance{font-size:11px;color:#b54450;font-weight:600;margin-top:2px}
+.why-not{display:block;font-size:10px;color:#4e5d6b;margin-top:18px;line-height:1.45}
+.why .factors{margin-top:10px;color:#ffffff}
+.evidence{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:9px}
+.evidence li{background:#ffffff14;border-radius:8px;padding:8px 10px;font-size:11px;line-height:1.45;color:#e0e5ea}
+.evidence b{display:block;font-size:10px;text-transform:capitalize;color:#ffffff;margin-bottom:3px}
+.evidence q{font-style:italic}
+.evidence em{display:block;font-size:10px;color:#ffd7db;margin-top:3px}
+.why .blood-source{margin-top:12px}
+.call-ahead{font-size:11px;color:#4e5d6b;line-height:1.5;padding-left:18px;margin:6px 0 14px}
